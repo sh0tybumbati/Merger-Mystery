@@ -193,10 +193,10 @@ const CLUES = {
    charges = spawns before cooldown; cd = seconds to refill; w = spawn weights for item tiers 1,2,3…
    (higher levels unlock higher-tier items; final tier is never spawned directly — it must be merged) */
 const GEN_LEVELS = [
-  { charges:3, cd:30, w:[100] },
-  { charges:4, cd:30, w:[65,35] },
-  { charges:5, cd:28, w:[30,50,20] },
-  { charges:7, cd:26, w:[10,35,55] }
+  { charges:3, cd:90, w:[100] },
+  { charges:4, cd:80, w:[65,35] },
+  { charges:5, cd:70, w:[30,50,20] },
+  { charges:7, cd:60, w:[10,35,55] }
 ];
 const GEN_MAX = GEN_LEVELS.length;
 function spawnTable(c,l){                       // -> [[tier,weight],…] capped below the chain's final tier
@@ -379,7 +379,7 @@ $("grid").addEventListener("pointerdown", e=>{
 });
 window.addEventListener("pointermove", e=>{
   if(!drag || !drag.had) return;
-  if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
+  if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>(S.grid[drag.i].g?26:12)){
     drag.moved=true; clearTimeout(drag.timer);
     const it = S.grid[drag.i];
     ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=it.g?genInfo(it.c,it.l)[0]:item(it.c,it.t)[0];
@@ -394,6 +394,7 @@ window.addEventListener("pointerup", e=>{
   if(ghost){ ghost.remove(); ghost=null; }
   const el = document.elementFromPoint(e.clientX,e.clientY);
   const cell = el?.closest(".cell"), bin = el?.closest("#bin");
+  if(d.moved && cell && +cell.dataset.i===d.i){ d.moved=false; }   // dropped where it started: treat as a tap
   if(d.moved){
     selected=null;
     if(bin) act(d.i,"bin"); else if(cell) act(d.i,+cell.dataset.i); else renderTable();
