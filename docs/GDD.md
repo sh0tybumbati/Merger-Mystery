@@ -30,7 +30,7 @@ title: Merger Mystery — Game Design Document
 ### Episode structure (~1 hour, 10–15 short sessions)
 | Phase | Content | Time |
 |---|---|---|
-| Prologue | Burton-style cold open, body found | 1 min |
+| Prologue | Deadpan cold open, body found | 1 min |
 | Scenes 1–3 | 3 boards, 4–6 clues each | ~45 min |
 | The Web | Board consolidation, contradictions | 5 min |
 | Showdown | Confront 3–4 suspects | 5 min |
