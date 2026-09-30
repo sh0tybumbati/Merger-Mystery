@@ -5,7 +5,7 @@ title: Merger Mystery — Game Design Document
 
 # Merger Mystery — Game Design Document
 
-*Working title. Gothic merge-puzzle × episodic murder mystery. Mobile-first PWA.*
+*Working title. Merge-puzzle × episodic murder mystery in a pastel dollhouse world. Mobile-first PWA.*
 
 [Play the prototype](../) · [Case 1 mystery graph](case-1-the-late-mr-grimsby.html) · [Art & audio style guide](art-style-guide.html)
 
@@ -14,7 +14,7 @@ title: Merger Mystery — Game Design Document
 - **Merge tier = investigative depth.** Every merge chain is a forensic process; higher tier means more is known.
 - **Two skills, two feelings.** Merging is spatial and logistical. The red-string board is logical and narrative.
 - **Fair play.** Money speeds processing, never solving. Story beats are never gated by energy.
-- **Tim Burton storybook.** Spindly, high-contrast, stop-motion; dark but playful.
+- **Dollhouse Cluedo.** Pastel, symmetrical, flat and deadpan; a grim crime in a tidy, polite world.
 
 ## 2. Core Gameplay Loop
 
@@ -82,23 +82,17 @@ Cross-chain: a Vial merged with a Reagent skips a tier. Sources level up to spaw
 
 ## 4. Art & UI Guidelines
 
-**Palette:** charcoal, ink black, bruised violet, desaturated teal; ~5 hues per scene; one accent per case. Red is reserved for string and critical clues.
+**Direction: Dollhouse Cluedo.** A Wes-Anderson dollhouse crossed with a board-game murder mystery: pastel, symmetrical, flat and deadpan, where a grim crime plays out in a tidy, polite world. Merge items need bright, distinct silhouettes, and this look gives them that. Dark, gothic moods are saved for the big beats (the showdown and the string board) instead of being the whole game. Full detail is in the [style guide](art-style-guide.html).
 
-**Shape language:** spindly, elongated, asymmetrical; crooked frames, warped perspective, stripes, stitching, button eyes. Suspects have giant heads, needle limbs, huge eyes.
-
-**Stop-motion feel:** animate characters and props at 8–12 fps with stepped interpolation while the UI stays smooth. Idle "boil" wobble on items. Paper and felt textures, visible thread.
-
-**Board and UI:**
-- Grid is a lopsided Victorian evidence table; tiles are crooked velvet pockets.
-- Thick wobbly outlines; higher tiers glow.
-- Merge FX: ink splatter, smoke, stitched zip; moths and bats flutter out on Reveal.
-- HUD: energy as a burning candle, bottom toolbox (magnifier, hint), corner Case File tab.
-- Red-string board: corkboard with saggy catenary strings, big tactile pins, comedic *twang* on wrong links.
-- Type: hand-drawn spiky serif for titles; a legible serif/sans for body. Readability beats theme.
-
-**Mobile UX:** key actions in the bottom third; touch targets ≥48px; one-hand drag-merge with a tap-tap alternative; silhouettes readable at small size (test in grayscale); colourblind-safe strings (pattern plus colour); reduce-motion toggle; adjustable text; audio muted by default and unlocked on first gesture.
-
-**Production shortcuts:** Spine/DragonBones with stepped keys; one shared puppet rig with swappable heads and outfits; parallax illustrated cutscenes; global grain/vignette post-effect.
+- **Palette:** cream, blush pink, mustard, teal, sky, mint and lilac on a dotted paper wallpaper, with plum-brown ink for all outlines. Red is reserved for string, pins and danger. Each chain has its own colour; each case gets its own accent scheme and setting.
+- **Shapes:** symmetrical layouts, chunky rounded corners, flat colour with a hard offset shadow, no blur.
+- **Board:** a teal felt tray with a brass rim and checkerboard tiles. The case board is green baize with pinned index cards and saggy red string.
+- **Characters:** one flat puppet rig with big round heads, dot eyes and a deadpan mouth; identity comes from silhouette hooks (veil, spectacles, bowler, top hat).
+- **Motion:** crisp and deliberate (pop, bob, drift), never wobbly. Confetti-style bursts on merges and clues.
+- **Type:** Playfair Display for titles, Jost for UI; readable body copy first.
+- **Mobile UX:** key actions in the bottom third; targets 48px or larger; one-hand drag with a tap-tap alternative; silhouettes readable at small size; reduce-motion toggle; audio muted by default until enabled.
+- **Audio:** a jaunty harpsichord waltz and short plucked effects, synthesised in-browser.
+- **Production shortcuts:** procedural SVG characters and buildings; a shared puppet rig with swappable headgear; per-case palette swaps.
 
 ## 5. Monetization & Pacing
 
@@ -146,6 +140,6 @@ Cross-chain: a Vial merged with a Reagent skips a tier. Sources level up to spaw
 1. **Digital prototype** of the merge → reveal → pin loop. ✅
 2. **Contradiction merges** ✅. Witness statements come in two clashing variants; only a clashing pair merges into the clue.
 3. **Scene progression and showdown** ✅. Study, Servants' Hall and Séance Parlour unlock as clues are found; a three-claim showdown ends the case.
-4. **Art and audio pass** ✅ (procedural). Puppet rig, grain and vignette, particle bursts, synthesised music box and effects. See the [style guide](art-style-guide.html).
+4. **Art and audio pass** ✅ (procedural), then re-themed from gothic to **Dollhouse Cluedo**: pastel palette, hotel facade, flat puppet rig, confetti bursts, harpsichord waltz. See the [style guide](art-style-guide.html).
 5. **Playtest** the pacing, then decide monetization numbers.
 6. **PixiJS port** with real art, once the design has settled.

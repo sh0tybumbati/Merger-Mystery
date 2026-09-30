@@ -5,7 +5,7 @@ title: Case 1 — The Late Mr. Grimsby
 
 # Case 1: The Late Mr. Grimsby
 
-*Tone: gothic farce. Everyone is spindly, the manor leans, and the truth is petty.*
+*Tone: deadpan farce. A tidy pink manor, impeccable manners, and a petty truth.*
 
 [Play the prototype](../) · [Design document](GDD.html)
 
