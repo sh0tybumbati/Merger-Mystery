@@ -51,6 +51,15 @@ button:disabled{opacity:.4}
 .chain-seance{background:radial-gradient(circle,#6a5a2f66,transparent 70%)}
 @keyframes boil{0%{transform:rotate(0)}25%{transform:rotate(1.5deg) translateY(-1px)}50%{transform:rotate(-1deg)}75%{transform:rotate(1deg) translateY(1px)}}
 @keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+.item.gen{border:2px solid var(--amber);border-radius:9px;background-color:#2b1d10;box-shadow:inset 0 0 8px #f2b84b55}
+.item.gen.cool{filter:grayscale(.7) brightness(.7)}
+.item.gen.lvmax{box-shadow:inset 0 0 10px var(--blood),0 0 6px var(--blood)}
+.lv{position:absolute;left:1px;top:0;font-size:10px;color:#000;background:var(--amber);border-radius:6px;padding:0 4px;font-family:sans-serif;font-weight:700}
+.pips{position:absolute;left:0;right:0;bottom:1px;text-align:center;font-size:7px;letter-spacing:1px;color:var(--amber);font-family:sans-serif;line-height:1}
+.cdtxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:sans-serif;color:#fff;text-shadow:1px 1px 2px #000;font-weight:700}
+.geninfo{background:var(--velvet);border:2px solid #000;border-radius:10px 3px 10px 3px;padding:8px 10px;font-size:13px;line-height:1.4;box-shadow:3px 3px 0 #000;min-height:64px}
+.geninfo b{color:var(--amber)}
+.geninfo .next{color:var(--dim);font-size:12px;margin-top:3px}
 .ghost{position:fixed;pointer-events:none;z-index:50;font-size:38px;transform:translate(-50%,-60%) rotate(-6deg);
   filter:drop-shadow(3px 5px 0 #000a)}
 .tray{display:flex;gap:6px;justify-content:space-between}
@@ -102,7 +111,7 @@ button:disabled{opacity:.4}
 </head>
 <body>
 <div id="app">
-  <h1>The Late Mr. Grimsby<small>A MERGER MYSTERY &middot; CASE 1 &middot; PAPER PROTOTYPE</small></h1>
+  <h1>The Late Mr. Grimsby<small>A MERGER MYSTERY &middot; CASE 1 &middot; PROTOTYPE v2</small></h1>
 
   <div class="hud">
     <div class="pill" id="energy"></div>
@@ -117,7 +126,8 @@ button:disabled{opacity:.4}
   <!-- Evidence table -->
   <section id="viewTable">
     <div class="desk"><div id="grid"></div></div>
-    <p class="note" id="tip">Tap a crate to spawn evidence. Drag two matching items together (or tap one, then the other).</p>
+    <p class="note" id="tip">Tap a <b style="color:var(--amber)">generator</b> to spawn evidence. Drag two matching items together to merge them — drag two matching generators to <b style="color:var(--amber)">upgrade</b> them. (Tap-tap works too; long-press selects a generator.)</p>
+    <div class="geninfo" id="genInfo"></div>
     <div class="tray" id="tray"></div>
     <div class="legend" id="legend"></div>
   </section>
@@ -145,16 +155,20 @@ button:disabled{opacity:.4}
    DATA  — everything content-related lives here (data-driven!)
    ========================================================= */
 const COLS = 6, ROWS = 7, CELLS = COLS * ROWS;
-const MAX_ENERGY = 40, REGEN_MS = 6000, START_COMPOSURE = 3;
+const START_COMPOSURE = 3;
 
 const CHAINS = {
   poison: { name:"Forensic Lab", src:"🧰", css:"chain-poison",
+    gen:[["🧰","Field Kit"],["🧫","Petri Bench"],["⚗️","Chem Bench"],["🏥","Forensic Lab"]],
     tiers:[["🌫️","Dust Mote"],["🧂","Powder Pinch"],["🧪","Vial of Residue"],["🔬","Lab Slide"]], clue:"belladonna" },
   words:  { name:"Witness Desk", src:"🗄️", css:"chain-words",
+    gen:[["📁","Case Folder"],["🗄️","Filing Cabinet"],["🗃️","Card Index"],["🏛️","Town Archive"]],
     tiers:[["👂","Whisper"],["💬","Rumour"],["📜","Signed Statement"]], clue:"alibi" },
   fibre:  { name:"Trace Kit", src:"🧵", css:"chain-fibre",
+    gen:[["🧺","Sewing Basket"],["🪡","Tailor's Kit"],["🧥","Tailor's Dummy"],["🏬","Tailor Shop"]],
     tiers:[["🧵","Loose Thread"],["🪢","Fibre Tuft"],["🧣","Silk Scrap"]], clue:"glove" },
   seance: { name:"Séance Parlour", src:"🕯️", css:"chain-seance",
+    gen:[["🕯️","Candle Stand"],["🕸️","Dusty Table"],["🔮","Crystal Ball"],["🏚️","Haunted Parlour"]],
     tiers:[["🕯️","Candle Stub"],["🫗","Wax Pool"],["🔮","Spirit Board"]], clue:"ghost" }
 };
 
@@ -175,30 +189,44 @@ const CLUES = {
   ghost:{ title:"Spirit Board: “C-R-A-N-E”", emoji:"👻", who:null,
     text:"The planchette spelled CRANE. (Ghosts, sadly, are not admissible evidence.)" }
 };
+/* Generators: merge two of the same chain+level to level up.
+   charges = spawns before cooldown; cd = seconds to refill; w = spawn weights for item tiers 1,2,3…
+   (higher levels unlock higher-tier items; final tier is never spawned directly — it must be merged) */
+const GEN_LEVELS = [
+  { charges:3, cd:30, w:[100] },
+  { charges:4, cd:30, w:[65,35] },
+  { charges:5, cd:28, w:[30,50,20] },
+  { charges:7, cd:26, w:[10,35,55] }
+];
+const GEN_MAX = GEN_LEVELS.length;
+function spawnTable(c,l){                       // -> [[tier,weight],…] capped below the chain's final tier
+  const cap = maxTier(c)-1;
+  return GEN_LEVELS[l-1].w.map((w,i)=>[i+1,w]).filter(([t])=>t<=cap);
+}
+const mkGen = (c,l=1)=>({ g:1, c, l, ch:GEN_LEVELS[l-1].charges, cd:0 });
+const genInfo = (c,l)=>CHAINS[c].gen[l-1];
 const NEED = ["belladonna","alibi","glove"];   // true clues required to close the case
 
 /* =========================================================
    STATE
    ========================================================= */
-const SAVE_KEY = "merger-mystery-proto-v1";
+const SAVE_KEY = "merger-mystery-proto-v2";
 let S;
 function fresh(){
   const g = Array(CELLS).fill(null);
-  // seeded starting board
-  const seed = [["poison",1],["poison",1],["words",1],["words",1],["fibre",1],["seance",1],["poison",2],["words",2]];
-  seed.forEach(([c,t])=>{ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]={c,t}; });
-  return { grid:g, energy:MAX_ENERGY, ts:Date.now(), clues:[], links:{}, composure:START_COMPOSURE, solved:false };
+  // start with two Lv1 generators per chain: merge them to reach Lv2, and so on
+  Object.keys(CHAINS).forEach(c=>{ for(let n=0;n<2;n++){ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]=mkGen(c); } });
+  return { grid:g, clues:[], links:{}, composure:START_COMPOSURE, solved:false };
 }
 function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.grid) return s; }catch(e){} return fresh(); }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 S = load();
 
-/* ---------- energy regen ---------- */
-function regen(){
-  const now = Date.now();
-  if(S.energy >= MAX_ENERGY){ S.ts = now; return; }
-  const n = Math.floor((now - S.ts)/REGEN_MS);
-  if(n>0){ S.energy = Math.min(MAX_ENERGY, S.energy+n); S.ts += n*REGEN_MS; }
+/* ---------- generator cooldowns ---------- */
+function tickGens(){
+  const now=Date.now(); let changed=false;
+  S.grid.forEach(it=>{ if(it&&it.g&&it.cd&&now>=it.cd){ it.ch=GEN_LEVELS[it.l-1].charges; it.cd=0; changed=true; } });
+  return changed;
 }
 
 /* =========================================================
@@ -213,37 +241,43 @@ const maxTier = c => CHAINS[c].tiers.length;
 /* =========================================================
    EVIDENCE TABLE
    ========================================================= */
-let selected = null, lastPop = -1;
+let selected = null, lastPop = -1, focus = null;
 
 function renderTable(){
-  regen();
-  $("energy").innerHTML = "🕯️ Candlelight " + S.energy + "/" + MAX_ENERGY;
-  $("composure").innerHTML = "🎭 Composure " + "♥".repeat(S.composure) + "♡".repeat(START_COMPOSURE-S.composure);
+  tickGens();
+  renderHud();
+  if(focus!==null && !(S.grid[focus]&&S.grid[focus].g)) focus=null;
   const g = $("grid"); g.innerHTML = "";
   S.grid.forEach((it,i)=>{
     const d = document.createElement("div");
     d.className = "cell" + (selected===i?" sel":"");
     d.dataset.i = i;
     if(it){
-      const [emo,name] = item(it.c,it.t);
       const e = document.createElement("div");
-      e.className = "item "+CHAINS[it.c].css + (lastPop===i?" pop":"");
-      e.title = name;
-      e.innerHTML = emo + '<span class="tier">'+it.t+'</span>';
+      if(it.g){
+        const [emo,name] = genInfo(it.c,it.l), cool = it.ch<=0;
+        e.className = "item gen "+CHAINS[it.c].css+(cool?" cool":"")+(it.l===GEN_MAX?" lvmax":"")+(lastPop===i?" pop":"");
+        e.title = name;
+        e.innerHTML = emo+'<span class="lv">Lv'+it.l+'</span>'+
+          (cool ? '<span class="cdtxt" data-cd="'+it.cd+'"></span>'
+                : '<span class="pips">'+"●".repeat(it.ch)+"○".repeat(GEN_LEVELS[it.l-1].charges-it.ch)+'</span>');
+      } else {
+        const [emo,name] = item(it.c,it.t);
+        e.className = "item "+CHAINS[it.c].css + (lastPop===i?" pop":"");
+        e.title = name;
+        e.innerHTML = emo + '<span class="tier">'+it.t+'</span>';
+      }
       d.appendChild(e);
     }
     g.appendChild(d);
   });
   lastPop = -1;
-  // tray
+  tickCooldownText();
+  // tray (just the bin now; sources live on the board)
   const tr = $("tray"); tr.innerHTML = "";
-  Object.keys(CHAINS).forEach(k=>{
-    const b = document.createElement("button"); b.className="src"; b.dataset.src=k;
-    b.innerHTML = "<b>"+CHAINS[k].src+"</b>"+CHAINS[k].name+"<br>−1🕯️";
-    tr.appendChild(b);
-  });
-  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.innerHTML="<b>🪦</b>File away";
+  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.style.flex=1; bin.innerHTML="<b>🪦</b>File away (drag or select, then tap)";
   tr.appendChild(bin);
+  renderGenInfo();
   // legend
   $("legend").innerHTML = Object.keys(CHAINS).map(k=>{
     const c=CHAINS[k];
@@ -251,46 +285,104 @@ function renderTable(){
   }).join("");
 }
 
-function spawn(k){
-  regen();
-  if(S.energy<=0){ toast("Out of candlelight! Wait for it to regrow."); return; }
-  const empty = S.grid.map((v,i)=>v?-1:i).filter(i=>i>=0);
-  if(!empty.length){ toast("Table's full — merge or file something away."); return; }
-  const i = empty[Math.floor(Math.random()*empty.length)];
-  S.energy--; if(S.energy===MAX_ENERGY-1) S.ts=Date.now();
-  S.grid[i] = { c:k, t: Math.random()<.2 && maxTier(k)>2 ? 2 : 1 };
-  lastPop = i; commit();
+function tickCooldownText(){
+  const now=Date.now();
+  document.querySelectorAll(".cdtxt").forEach(el=>{ el.textContent = "⏳"+Math.max(0,Math.ceil((+el.dataset.cd-now)/1000))+"s"; });
+}
+
+function tierList(c,l){
+  const t=spawnTable(c,l), tot=t.reduce((a,x)=>a+x[1],0);
+  return t.map(([ti,w])=>item(c,ti)[0]+" "+Math.round(100*w/tot)+"%").join(" · ");
+}
+function renderGenInfo(){
+  const el=$("genInfo"), it = focus!==null ? S.grid[focus] : null;
+  if(!it){ el.innerHTML='<span style="color:var(--dim)">Tap a generator to see its stats. Merge two of the same level to upgrade it: more charges, higher-tier items.</span>'; return; }
+  const L=GEN_LEVELS[it.l-1], [emo,name]=genInfo(it.c,it.l);
+  let h='<b>'+emo+' '+name+'</b> · Lv '+it.l+'/'+GEN_MAX+'<br>'+
+    '⚡ '+(it.ch>0?it.ch+'/'+L.charges+' charges':'recharging…')+' · ⏳ '+L.cd+'s refill after last charge<br>'+
+    'Spawns: '+tierList(it.c,it.l);
+  if(it.l<GEN_MAX){
+    const N=GEN_LEVELS[it.l], [ne,nn]=genInfo(it.c,it.l+1);
+    const newTier = spawnTable(it.c,it.l+1).length>spawnTable(it.c,it.l).length ? ' · unlocks '+item(it.c,spawnTable(it.c,it.l+1).length)[0]+' '+item(it.c,spawnTable(it.c,it.l+1).length)[1] : '';
+    h+='<div class="next">Merge 2× Lv'+it.l+' → '+ne+' '+nn+': '+N.charges+' charges, '+N.cd+'s refill'+newTier+'</div>';
+  } else h+='<div class="next">Max level.</div>';
+  el.innerHTML=h;
+}
+
+function pickTier(c,l){
+  const t=spawnTable(c,l), tot=t.reduce((a,x)=>a+x[1],0); let r=Math.random()*tot;
+  for(const [ti,w] of t){ if((r-=w)<0) return ti; }
+  return t[0][0];
+}
+function emptyCells(){ return S.grid.map((v,i)=>v?-1:i).filter(i=>i>=0); }
+
+function spawnFrom(i){
+  tickGens();
+  const gen=S.grid[i];
+  if(!gen||!gen.g) return;
+  focus=i;
+  if(gen.ch<=0){ renderTable(); toast("Still recharging."); return; }
+  const empty = emptyCells();
+  if(!empty.length){ toast("Table's full — merge or file something away."); return renderTable(); }
+  const j = empty[Math.floor(Math.random()*empty.length)];
+  gen.ch--; if(gen.ch<=0) gen.cd = Date.now()+GEN_LEVELS[gen.l-1].cd*1000;
+  S.grid[j] = { c:gen.c, t:pickTier(gen.c,gen.l) };
+  lastPop = j; commit();
+}
+
+// Inspector rewards each clue with a fresh Lv1 lead (generator) for a chain whose clue is still missing
+function grantLead(){
+  const open = Object.keys(CHAINS).filter(c=>!S.clues.includes(CHAINS[c].clue));
+  const empty = emptyCells();
+  if(!open.length || !empty.length) return null;
+  const c = open[Math.floor(Math.random()*open.length)], i = empty[Math.floor(Math.random()*empty.length)];
+  S.grid[i]=mkGen(c); lastPop=i;
+  return genInfo(c,1);
 }
 
 function act(from,to){        // from: cell index, to: cell index | "bin"
-  if(from===to) return;
+  if(from===to) return renderTable();
   const a = S.grid[from];
   if(!a) return;
-  if(to==="bin"){ S.grid[from]=null; toast("Filed away."); return commit(); }
+  if(to==="bin"){
+    if(a.g){ toast("Generators can't be filed away."); return renderTable(); }
+    S.grid[from]=null; toast("Filed away."); return commit();
+  }
   const b = S.grid[to];
-  if(!b){ S.grid[to]=a; S.grid[from]=null; return commit(); }
-  if(a.c===b.c && a.t===b.t){
+  if(!b){ S.grid[to]=a; S.grid[from]=null; if(a.g) focus=to; return commit(); }
+  if(a.g && b.g && a.c===b.c && a.l===b.l){            // upgrade a generator
+    if(a.l>=GEN_MAX){ toast("Already at max level."); return renderTable(); }
+    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to;
+    const [emo,name]=genInfo(a.c,a.l+1), before=spawnTable(a.c,a.l).length, after=spawnTable(a.c,a.l+1).length;
+    toast("⬆ "+emo+" "+name+" (Lv"+(a.l+1)+")! "+GEN_LEVELS[a.l].charges+" charges"+(after>before?" · now spawns "+item(a.c,after)[1]:""));
+    return commit();
+  }
+  if(!a.g && !b.g && a.c===b.c && a.t===b.t){          // merge evidence
     S.grid[from]=null;
     if(a.t < maxTier(a.c)){ b.t++; lastPop=to; commit(); }
     else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
     return;
   }
-  S.grid[from]=b; S.grid[to]=a; commit();   // swap
+  S.grid[from]=b; S.grid[to]=a; if(a.g) focus=to; else if(b.g) focus=from; commit();   // swap
 }
 
 /* ---- pointer handling: drag OR tap-tap ---- */
 let drag=null, ghost=null;
 $("grid").addEventListener("pointerdown", e=>{
   const c = e.target.closest(".cell"); if(!c) return;
-  const i = +c.dataset.i;
-  drag = { i, x:e.clientX, y:e.clientY, moved:false, had: !!S.grid[i] };
+  const i = +c.dataset.i, it = S.grid[i];
+  drag = { i, x:e.clientX, y:e.clientY, moved:false, had: !!it, long:false };
+  if(it && it.g){                                   // long-press selects a generator (for tap-tap upgrading)
+    const d=drag;
+    d.timer=setTimeout(()=>{ if(drag===d && !d.moved){ d.long=true; selected=i; focus=i; renderTable(); } },450);
+  }
 });
 window.addEventListener("pointermove", e=>{
   if(!drag || !drag.had) return;
   if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
-    drag.moved=true;
+    drag.moved=true; clearTimeout(drag.timer);
     const it = S.grid[drag.i];
-    ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=item(it.c,it.t)[0];
+    ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=it.g?genInfo(it.c,it.l)[0]:item(it.c,it.t)[0];
     document.body.appendChild(ghost);
   }
   if(ghost){ ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px";
@@ -298,7 +390,7 @@ window.addEventListener("pointermove", e=>{
 });
 window.addEventListener("pointerup", e=>{
   if(!drag) return;
-  const d = drag; drag=null;
+  const d = drag; drag=null; clearTimeout(d.timer);
   if(ghost){ ghost.remove(); ghost=null; }
   const el = document.elementFromPoint(e.clientX,e.clientY);
   const cell = el?.closest(".cell"), bin = el?.closest("#bin");
@@ -307,15 +399,22 @@ window.addEventListener("pointerup", e=>{
     if(bin) act(d.i,"bin"); else if(cell) act(d.i,+cell.dataset.i); else renderTable();
     return;
   }
+  if(d.long) return;
   // tap
-  const i = d.i;
-  if(selected===null){ if(S.grid[i]){ selected=i; renderTable(); } }
+  const i = d.i, it = S.grid[i];
+  if(selected===null){
+    if(it && it.g){ if(it.ch>0) spawnFrom(i); else { focus=i; selected=i; renderTable(); } }   // tap = spawn
+    else if(it){ selected=i; renderTable(); }
+    else { renderTable(); }
+  }
   else if(selected===i){ selected=null; renderTable(); }
   else { const from=selected; selected=null; act(from,i); }
 });
 $("tray").addEventListener("click", e=>{
-  const s = e.target.closest(".src"); if(s){ spawn(s.dataset.src); return; }
-  if(e.target.closest("#bin") && typeof selected==="number"){ const f=selected; selected=null; act(f,"bin"); }
+  if(e.target.closest("#bin")){
+    if(typeof selected==="number"){ const f=selected; selected=null; act(f,"bin"); }
+    else toast("Select an item first, or drag it here.");
+  }
 });
 
 /* =========================================================
@@ -327,8 +426,10 @@ function closeOverlay(){ $("overlay").classList.add("hidden"); }
 function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
-  S.clues.push(id); commit();
+  S.clues.push(id);
+  const lead = grantLead(); commit();
   overlay('<div class="big">'+c.emoji+'</div><h2>Clue Discovered!</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
+    (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
     '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>');
   $("goPin").onclick=()=>{ closeOverlay(); showTab("board"); };
   $("stay").onclick=closeOverlay;
@@ -418,8 +519,7 @@ $("confront").onclick=()=>{
    TABS / INIT
    ========================================================= */
 function renderHud(){
-  regen();
-  $("energy").innerHTML = "🕯️ Candlelight " + S.energy + "/" + MAX_ENERGY;
+  $("energy").innerHTML = "🔎 Clues " + S.clues.length + "/" + Object.keys(CLUES).length;
   $("composure").innerHTML = "🎭 Composure " + "♥".repeat(S.composure) + "♡".repeat(START_COMPOSURE-S.composure);
 }
 function commit(){ save(); renderTable(); renderBoard(); }
@@ -433,7 +533,10 @@ $("tabTable").onclick=()=>showTab("table");
 $("tabBoard").onclick=()=>showTab("board");
 $("reset").onclick=()=>{ if(confirm("Restart the case from scratch?")){ S=fresh(); selected=null; armedClue=null; commit(); showTab("table"); } };
 window.addEventListener("resize",drawStrings);
-setInterval(renderHud,1000);
+setInterval(()=>{                                   // cooldown ticker: full re-render only when a generator refills
+  if(drag && drag.moved) return;
+  if(tickGens()) renderTable(); else tickCooldownText();
+},500);
 commit();
 </script>
 </body>

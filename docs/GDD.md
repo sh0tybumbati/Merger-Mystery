@@ -44,6 +44,27 @@ title: Merger Mystery — Game Design Document
 - **Case File Requests** replace customer orders ("The Inspector needs a toxicology report").
 - **Soft-lock prevention:** full board with no merges grants a free Emergency Lead.
 
+## 2b. Generators (Sources on the Board)
+
+Sources are **items on the merge board**, not a menu. Each chain has its own generator line that levels up by merging.
+
+- **Tap to spawn.** A generator has a fixed number of **charges**. Spawning uses one; when the last is spent it goes on **cooldown** and refills fully.
+- **Merge to upgrade.** Two generators of the same chain and level merge into the next level, so a Lv3 needs four Lv1s. Upgrading refills charges and clears cooldown.
+- **Higher level = better output.** More charges per cycle, slightly faster refill, and spawn tables that unlock higher-tier items off the bat (the final tier is never spawned; it must be merged to reveal the clue).
+- **Leads.** Each clue found earns a new Lv1 generator for a chain whose clue is still missing.
+- **Protected.** Generators can't be filed away, but can be moved and swapped.
+
+| Level | Charges | Refill | Spawn weights (tier 1 / 2 / 3) |
+|---|---|---|---|
+| 1 | 3 | 30 s | 100 / – / – |
+| 2 | 4 | 30 s | 65 / 35 / – |
+| 3 | 5 | 28 s | 30 / 50 / 20 |
+| 4 | 7 | 26 s | 10 / 35 / 55 |
+
+Example line (Forensic): 🧰 Field Kit → 🧫 Petri Bench → ⚗️ Chem Bench → 🏥 Forensic Lab.
+
+In the full game, generator cooldowns replace global energy as the pacing lever, and speed-ups or extra charges become the natural monetization hook. The prototype has no global energy.
+
 ## 3. Merge Chains
 
 Chains run 4–6 tiers and end in a Clue Card. Keep them short; deep chains mean tedious tile counts on a small grid.
