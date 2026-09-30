@@ -149,6 +149,18 @@ button:disabled{opacity:.4}
 .evi button{font-size:13px;padding:8px 6px;line-height:1.2}
 .evi button b{display:block;font-size:26px;font-weight:400}
 .shake{animation:shake .4s}
+/* film grain + vignette (global stop-motion / old-print feel) */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:299;background:radial-gradient(ellipse at 50% 45%,transparent 55%,#000a 100%)}
+body::after{content:"";position:fixed;inset:-40px;pointer-events:none;z-index:300;opacity:.10;mix-blend-mode:overlay;animation:grain .45s steps(1) infinite;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+@keyframes grain{0%{transform:translate(0,0)}33%{transform:translate(-14px,9px)}66%{transform:translate(11px,-13px)}}
+h1::after{content:"";display:block;height:7px;margin:9px auto 0;width:72%;border:2px solid #000;transform:rotate(-.8deg);
+  background:repeating-linear-gradient(90deg,var(--bone) 0 11px,var(--ink) 11px 22px)}
+.portrait svg{height:132px;width:auto;display:block;margin:0 auto;filter:drop-shadow(3px 4px 0 #000a)}
+.card .face svg{height:74px;width:auto;display:block;margin:0 auto 2px}
+.fx{position:fixed;pointer-events:none;z-index:250;font-size:18px;animation:fx .75s ease-out forwards}
+@keyframes fx{to{transform:translate(var(--dx),var(--dy)) rotate(var(--r)) scale(.4);opacity:0}}
+body.reduce .fx,body.reduce::after{display:none}
 body.reduce *{animation:none!important;transition:none!important}
 .menuline{display:flex;gap:6px;align-items:center}
 </style>
@@ -241,9 +253,9 @@ const CHAINS = {
 };
 
 const SUSPECTS = {
-  vesper:{ name:"Lady Vesper", face:"👰", bio:"The widow. Prizes rare blooms in her private conservatory." },
-  morrow:{ name:"Dr. Morrow", face:"🩺", bio:"The physician. Was seen at his club all evening." },
-  crane: { name:"Mr. Crane", face:"🎩", bio:"The butler. Allergic to every flower; never enters a greenhouse." }
+  vesper:{ name:"Lady Vesper", face:"puppet:vesper", bio:"The widow. Prizes rare blooms in her private conservatory." },
+  morrow:{ name:"Dr. Morrow", face:"puppet:morrow", bio:"The physician. Was seen at his club all evening." },
+  crane: { name:"Mr. Crane", face:"puppet:crane", bio:"The butler. Allergic to every flower; never enters a greenhouse." }
 };
 const CULPRIT = "vesper";
 
@@ -326,6 +338,52 @@ function scarceVariant(c){          // keep both sides of a contradiction availa
   return n[0]===n[1] ? Math.floor(Math.random()*2) : (n[0]<n[1]?0:1);
 }
 const maxTier = c => CHAINS[c].tiers.length;
+
+/* ---------- shared "puppet rig": spindly, huge-headed, stitched, striped ---------- */
+const PUPPETS={
+  vesper:    {body:"#3a2a52",stripe:"#8a6cc0",skin:"#efe6d2",hair:"veil",  accent:"#b79cf0"},
+  morrow:    {body:"#1b2a2a",stripe:"#4a6e6e",skin:"#e8ead8",hair:"bald",  accent:"#6fa88a",specs:1},
+  crane:     {body:"#14101a",stripe:"#efe6d2",skin:"#e3dcec",hair:"tophat",accent:"#c8102e",tall:1},
+  bloat:     {body:"#2c2340",stripe:"#c8102e",skin:"#f0e2c8",hair:"bowler",accent:"#f2b84b",stache:1},
+  apprentice:{body:"#22181f",stripe:"#efe6d2",skin:"#ece4f0",hair:"spiky", accent:"#c8102e"}
+};
+function puppet(k){
+  const P=PUPPETS[k], cy=P.tall?34:42, K="#0d0812", st='stroke="'+K+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+  let hair="";
+  if(P.hair==="veil")   hair='<path d="M18 46Q18 6 50 6Q82 6 82 46L92 96L8 96Z" fill="'+P.accent+'" fill-opacity=".55" '+st+'/><ellipse cx="50" cy="'+(cy-30)+'" rx="10" ry="5" fill="'+K+'"/>';
+  if(P.hair==="tophat") hair='<rect x="30" y="'+(cy-64)+'" width="40" height="38" fill="'+K+'" '+st+'/><rect x="30" y="'+(cy-40)+'" width="40" height="7" fill="'+P.accent+'"/><ellipse cx="50" cy="'+(cy-27)+'" rx="38" ry="6" fill="'+K+'" '+st+'/>';
+  if(P.hair==="bowler") hair='<path d="M28 '+(cy-24)+'Q50 '+(cy-58)+' 72 '+(cy-24)+'Z" fill="'+K+'" '+st+'/><ellipse cx="50" cy="'+(cy-24)+'" rx="30" ry="5" fill="'+K+'" '+st+'/>';
+  if(P.hair==="spiky")  hair='<polygon points="24,'+(cy-18)+' 28,'+(cy-48)+' 38,'+(cy-30)+' 46,'+(cy-56)+' 54,'+(cy-30)+' 64,'+(cy-50)+' 68,'+(cy-28)+' 80,'+(cy-40)+' 76,'+(cy-14)+'" fill="'+K+'" '+st+'/>';
+  if(P.hair==="bald")   hair='<path d="M46 '+(cy-31)+'Q40 '+(cy-44)+' 52 '+(cy-42)+'" fill="none" '+st+'/>';
+  const eye=x=>'<circle cx="'+x+'" cy="'+cy+'" r="12" fill="'+P.stripe+'" fill-opacity=".45"/><circle cx="'+x+'" cy="'+cy+'" r="8.5" fill="'+K+'"/><circle cx="'+(x+2)+'" cy="'+(cy-2)+'" r="2.6" fill="#fff"/>';
+  const specs=P.specs?'<circle cx="38" cy="'+cy+'" r="13" fill="none" '+st+'/><circle cx="62" cy="'+cy+'" r="13" fill="none" '+st+'/><path d="M51 '+cy+'h-2" '+st+'/>':'';
+  const stache=P.stache?'<path d="M34 '+(cy+13)+'Q50 '+(cy+5)+' 66 '+(cy+13)+'Q50 '+(cy+20)+' 34 '+(cy+13)+'Z" fill="'+K+'"/>':'';
+  const mouth='<path d="M39 '+(cy+22)+'Q50 '+(cy+28)+' 61 '+(cy+21)+'" fill="none" '+st+'/>'+[43,50,57].map(x=>'<path d="M'+x+' '+(cy+20)+'v6" stroke="'+K+'" stroke-width="2"/>').join("");
+  return '<svg viewBox="0 0 100 150" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><pattern id="p-'+k+'" width="10" height="10" patternUnits="userSpaceOnUse">'+
+    '<rect width="10" height="5" fill="'+P.body+'"/><rect y="5" width="10" height="5" fill="'+P.stripe+'"/></pattern></defs>'+
+    '<path d="M44 128L40 148M56 128L60 148" fill="none" '+st+'/><ellipse cx="37" cy="149" rx="7" ry="3" fill="'+K+'"/><ellipse cx="63" cy="149" rx="7" ry="3" fill="'+K+'"/>'+
+    '<path d="M35 84Q14 100 24 124M65 84Q86 100 76 124" fill="none" '+st+'/>'+
+    '<path d="M50 '+(cy+30)+'V80" '+st+'/><path d="M34 80h32L62 130H38Z" fill="url(#p-'+k+')" '+st+'/>'+
+    '<ellipse cx="50" cy="'+cy+'" rx="29" ry="32" fill="'+P.skin+'" '+st+'/>'+eye(38)+eye(62)+specs+
+    '<path d="M50 '+(cy+4)+'l-3 10h6" fill="none" stroke="'+K+'" stroke-width="2"/>'+stache+mouth+hair+'</svg>';
+}
+const faceHTML = f => f.startsWith("puppet:") ? puppet(f.slice(7)) : f;
+
+/* ---------- particle burst ---------- */
+function burstAt(x,y,glyphs){
+  if(CFG.reduce) return;
+  for(let n=0;n<7;n++){
+    const e=document.createElement("span"); e.className="fx"; e.textContent=glyphs[n%glyphs.length];
+    e.style.left=x+"px"; e.style.top=y+"px";
+    const a=Math.random()*Math.PI*2, r=30+Math.random()*50;
+    e.style.setProperty("--dx",Math.cos(a)*r+"px"); e.style.setProperty("--dy",(Math.sin(a)*r-20)+"px"); e.style.setProperty("--r",(Math.random()*120-60)+"deg");
+    document.body.appendChild(e); setTimeout(()=>e.remove(),800);
+  }
+}
+function fx(i,glyphs){
+  setTimeout(()=>{ const c=document.querySelector('.cell[data-i="'+i+'"]'); if(!c) return;
+    const r=c.getBoundingClientRect(); burstAt(r.left+r.width/2,r.top+r.height/2,glyphs); },0);
+}
 
 /* =========================================================
    EVIDENCE TABLE
@@ -416,7 +474,7 @@ function spawnFrom(i){
   const empty = emptyCells();
   if(!empty.length){ toast("Table's full — merge or file something away."); return renderTable(); }
   const j = empty[Math.floor(Math.random()*empty.length)];
-  tut(0);
+  tut(0); Sfx.play("spawn");
   gen.ch--; if(gen.ch<=0) gen.cd = Date.now()+GEN_LEVELS[gen.l-1].cd*1000;
   S.grid[j] = mkItem(gen.c,pickTier(gen.c,gen.l));
   lastPop = j; commit();
@@ -470,7 +528,7 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
   if(!b){ S.grid[to]=a; S.grid[from]=null; if(a.g) focus=to; return commit(); }
   if(a.g && b.g && a.c===b.c && a.l===b.l){            // upgrade a generator
     if(a.l>=GEN_MAX){ toast("Already at max level."); return renderTable(); }
-    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2);
+    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2); Sfx.play("upgrade"); fx(to,["⭐","🦇"]);
     const [emo,name]=genInfo(a.c,a.l+1), before=spawnTable(a.c,a.l).length, after=spawnTable(a.c,a.l+1).length;
     toast("⬆ "+emo+" "+name+" (Lv"+(a.l+1)+")! "+GEN_LEVELS[a.l].charges+" charges"+(after>before?" · now spawns "+item(a.c,after)[1]:""));
     return commit();
@@ -482,7 +540,7 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
       S.grid[from]=null; S.grid[to]=null; tut(1); commit(); reveal(CHAINS[a.c].clue); return;
     }
     S.grid[from]=null; tut(1);
-    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; commit(); }
+    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; Sfx.play("merge",b.t); fx(to,["✨","🕸️"]); commit(); }
     else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
     return;
   }
@@ -550,7 +608,7 @@ function closeOverlay(){ $("overlay").classList.add("hidden"); }
 function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
-  S.clues.push(id); tut(3);
+  S.clues.push(id); tut(3); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🦇","✨","🕸️"]);
   const lead = grantLead(), opened = checkUnlocks(); commit();
   overlay('<div class="big">'+c.emoji+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
@@ -568,7 +626,7 @@ function renderBoard(){
   Object.entries(SUSPECTS).forEach(([k,s],n)=>{
     const d=document.createElement("div"); d.className="card sus"+(armedClue?" armed":"")+(S.solved&&k===CULPRIT?" solved":""); d.dataset.s=k;
     d.style.setProperty("--r",[-1.5,1,-.5][n]+"deg");
-    d.innerHTML='<span class="face">'+s.face+'</span><h4>'+s.name+'</h4>'+s.bio;
+    d.innerHTML='<span class="face">'+faceHTML(s.face)+'</span><h4>'+s.name+'</h4>'+s.bio;
     sp.appendChild(d);
   });
   const cl=$("clues"); cl.innerHTML="";
@@ -619,13 +677,13 @@ $("suspects").addEventListener("click", e=>{
   const s=e.target.closest(".sus"); if(!s||!armedClue||S.solved) return;
   const sid=s.dataset.s, cid=armedClue, clue=CLUES[cid];
   armedClue=null;
-  if(clue.who===sid){ S.links[cid]=sid; toast("The string pulls taut. ✔"); commit(); }
+  if(clue.who===sid){ S.links[cid]=sid; Sfx.play("good"); toast("The string pulls taut. ✔"); commit(); }
   else {
     // wrong: draw a limp string that snaps
     const a=document.querySelector('.clue[data-c="'+cid+'"]'), cork=$("cork").getBoundingClientRect();
     $("strings").insertAdjacentHTML("beforeend", stringPath(a,s,cork,"#777",3,'stroke-dasharray="6 6"'));
     s.classList.add("shake");
-    S.composure--;
+    S.composure--; Sfx.play("snap");
     let msg = clue.who ? "Twang! That doesn't connect "+SUSPECTS[sid].name+" to the crime." : "Twang! Ghosts leave no fingerprints. A red herring.";
     if(S.composure<=0){ msg+=" (Composure restored — the Inspector gives you a nudge: three clues, one culprit.)"; S.composure=START_COMPOSURE; }
     toast(msg); save();
@@ -643,7 +701,7 @@ function startShowdown(){
   let step=0, msg="";
   const draw=()=>{
     const q=SHOWDOWN[step];
-    overlay('<div class="scene"><div class="portrait">👰</div><div class="who">Lady Vesper · '+(step+1)+' of '+SHOWDOWN.length+'</div>'+
+    overlay('<div class="scene"><div class="portrait">'+puppet("vesper")+'</div><div class="who">Lady Vesper · '+(step+1)+' of '+SHOWDOWN.length+'</div>'+
       '<div class="bubble">“'+q.claim+'”</div>'+
       '<div class="dots">🎭 '+"♥".repeat(S.composure)+"♡".repeat(START_COMPOSURE-S.composure)+'</div>'+
       '<div style="font-size:13px;color:var(--amber);min-height:34px" id="sdMsg">'+(msg||"Present the clue that proves her wrong.")+'</div>'+
@@ -653,12 +711,12 @@ function startShowdown(){
   const present=id=>{
     const q=SHOWDOWN[step];
     if(id===q.answer){
-      msg="";
-      overlay('<div class="scene"><div class="portrait">🧒</div><div class="who">You, the Apprentice</div><div class="bubble">“'+q.retort+'”</div>'+
+      msg=""; Sfx.play("good");
+      overlay('<div class="scene"><div class="portrait">'+puppet("apprentice")+'</div><div class="who">You, the Apprentice</div><div class="bubble">“'+q.retort+'”</div>'+
         '<p><button id="sdNext">'+(step<SHOWDOWN.length-1?"Next claim ▸":"Finish her ▸")+'</button></p></div>');
       $("sdNext").onclick=()=>{ step++; step<SHOWDOWN.length ? draw() : finale(); };
     } else {
-      S.composure--;
+      S.composure--; Sfx.play("wrong");
       msg = id==="ghost" ? "Ghosts are not admissible evidence!" : "That doesn't answer her claim. Twang!";
       if(S.composure<=0){ S.composure=START_COMPOSURE; msg+=" Poe-tential whispers: “Try the ‘"+CLUES[q.answer].title+"’ clue.” (Composure restored)"; }
       save(); renderHud(); draw(); document.querySelector(".modal").classList.add("shake");
@@ -667,8 +725,8 @@ function startShowdown(){
   draw();
 }
 function finale(){
-  S.solved=true; commit();
-  overlay('<div class="spot"><div class="big">👰</div></div><h2>“It was YOU, Lady Vesper!”</h2>'+
+  S.solved=true; commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["⭐","🦇","✨"]);
+  overlay('<div class="spot"><div class="portrait">'+puppet("vesper")+'</div></div><h2>“It was YOU, Lady Vesper!”</h2>'+
     '<p>The <b>belladonna</b> came from your conservatory. Your <b>alibi</b> collapsed at ten to nine. And your <b>lavender glove</b> was caught on the study latch.</p>'+
     '<p><i>Lady Vesper laughs, and the candles gutter out…</i></p>'+
     '<p style="color:var(--dim);font-size:13px">CASE 1 CLOSED — prototype complete.<br>Next episode: <b>“The Widow’s Undertaker”</b></p>'+
@@ -706,9 +764,66 @@ function renderCoach(){
 $("coach").addEventListener("click",e=>{ if(e.target.id==="skipTut"){ S.tut=99; commit(); } });
 
 /* ---------- settings ---------- */
-const CFG_KEY="merger-mystery-settings"; let CFG={reduce:false};
+const CFG_KEY="merger-mystery-settings"; let CFG={reduce:false,sfx:true,music:false};
 try{ Object.assign(CFG,JSON.parse(localStorage.getItem(CFG_KEY))||{}); }catch(e){}
-function applyCfg(){ document.body.classList.toggle("reduce",!!CFG.reduce); try{ localStorage.setItem(CFG_KEY,JSON.stringify(CFG)); }catch(e){} }
+function applyCfg(){ document.body.classList.toggle("reduce",!!CFG.reduce); Sfx.setMusic(!!CFG.music); try{ localStorage.setItem(CFG_KEY,JSON.stringify(CFG)); }catch(e){} }
+
+/* ---------- audio: everything synthesised with WebAudio (no asset files) ---------- */
+const Sfx=(()=>{
+  let ctx=null, master, mus, timer=null, beat=0, next=0, unlocked=false, want=false;
+  const F=m=>440*Math.pow(2,(m-69)/12);
+  function init(){ if(ctx) return; try{ ctx=new (window.AudioContext||window.webkitAudioContext)();
+    master=ctx.createGain(); master.gain.value=.6; master.connect(ctx.destination); mus=ctx.createGain(); mus.gain.value=.3; mus.connect(master); }catch(e){ ctx=null; } }
+  function tone(f,t0,dur,o={}){
+    const {type="sine",vol=.3,dest=master,slide=0}=o, osc=ctx.createOscillator(), g=ctx.createGain();
+    osc.type=type; osc.frequency.setValueAtTime(f,t0);
+    if(slide) osc.frequency.exponentialRampToValueAtTime(Math.max(20,f*slide),t0+dur);
+    g.gain.setValueAtTime(.0001,t0); g.gain.exponentialRampToValueAtTime(vol,t0+.012); g.gain.exponentialRampToValueAtTime(.0001,t0+dur);
+    osc.connect(g); g.connect(dest); osc.start(t0); osc.stop(t0+dur+.05);
+  }
+  const box=(m,t0,vol=.3,dest=master)=>{ tone(F(m),t0,.9,{vol,dest}); tone(F(m+12),t0,.35,{type:"triangle",vol:vol*.35,dest}); };  // music-box timbre
+  const PENT=[57,60,62,64,67,69,72,74,76,79,81];
+  function play(name,arg=0){
+    if(!CFG.sfx||!unlocked) return; init(); if(!ctx) return;
+    const t=ctx.currentTime+.01, P=i=>PENT[Math.min(i,PENT.length-1)];
+    switch(name){
+      case "click":   tone(900,t,.05,{type:"square",vol:.05}); break;
+      case "spawn":   tone(300,t,.14,{type:"triangle",vol:.25,slide:2}); break;
+      case "merge":   box(P(arg+2),t,.3); box(P(arg+4),t+.09,.25); break;
+      case "upgrade": [0,2,4,6,8].forEach((n,i)=>box(P(n),t+i*.07,.28)); break;
+      case "clue":    [57,60,64,69,72].forEach((m,i)=>box(m+12,t+i*.1,.3)); tone(F(33),t,1.2,{type:"sawtooth",vol:.07}); break;
+      case "good":    tone(660,t,.1,{type:"triangle",vol:.25}); tone(990,t+.08,.18,{type:"triangle",vol:.25}); break;
+      case "snap":    tone(220,t,.35,{type:"sawtooth",vol:.18,slide:.3}); tone(110,t,.4,{type:"square",vol:.07,slide:.5}); break;
+      case "wrong":   tone(140,t,.25,{type:"square",vol:.11}); tone(120,t+.12,.3,{type:"square",vol:.11}); break;
+      case "eureka":  [57,64,69,72,76,81].forEach((m,i)=>box(m,t+i*.12,.3)); break;
+    }
+  }
+  // 3/4 music-box waltz in A minor
+  const BPM=104, BEAT=60/BPM;
+  const MEL=[76,0,72, 71,0,72, 74,0,71, 69,0,0,  76,0,72, 71,0,72, 74,0,68, 69,0,0];
+  const BASS=[45,45,40,45, 45,45,40,45];
+  function sched(){
+    while(next<ctx.currentTime+.4){
+      const b=beat%24, bar=Math.floor(b/3), pos=b%3;
+      if(MEL[b]) box(MEL[b],next,.5,mus);
+      if(pos===0) tone(F(BASS[bar]),next,.55,{type:"triangle",vol:.5,dest:mus});
+      else tone(F(BASS[bar]+19),next,.16,{type:"triangle",vol:.13,dest:mus});
+      next+=BEAT; beat++;
+    }
+  }
+  function apply(){
+    if(!unlocked) return; init(); if(!ctx) return;
+    if(want && !timer){ ctx.resume(); next=ctx.currentTime+.1; beat=0; timer=setInterval(sched,120); }
+    if(!want && timer){ clearInterval(timer); timer=null; }
+  }
+  return {
+    unlock(){ if(unlocked) return; unlocked=true; init(); if(ctx) ctx.resume(); apply(); },
+    setMusic(on){ want=on; apply(); },
+    play
+  };
+})();
+window.addEventListener("pointerdown",()=>Sfx.unlock(),{once:true});
+document.addEventListener("click",e=>{ if(e.target.closest("button")) Sfx.play("click"); });
 
 /* ---------- screens ---------- */
 function showMenu(){
@@ -723,14 +838,14 @@ function newCase(){
 }
 const INTRO=[
   {who:"Grimsby Hollow · 11:04 p.m.",face:"🏚️",text:"The manor leans a little further to the left tonight, as if it were listening."},
-  {who:"Inspector Bloat",face:"🥚",text:"He died of… surprise? Look at that face! And the tea isn't even cold."},
-  {who:"You, the Apprentice",face:"🧒",text:"Nobody dies of surprise, Inspector. Somebody arranged it. Bring me the teapot."},
+  {who:"Inspector Bloat",face:"puppet:bloat",text:"He died of… surprise? Look at that face! And the tea isn't even cold."},
+  {who:"You, the Apprentice",face:"puppet:apprentice",text:"Nobody dies of surprise, Inspector. Somebody arranged it. Bring me the teapot."},
   {who:"Poe-tential",face:"🐦‍⬛",text:"Caw. Red string for truth, grey string for gossip. Three suspects, one killer."},
-  {who:"Inspector Bloat",face:"🥚",text:"The widow, the physician and the butler. All upstairs, all lying in their own special ways."},
-  {who:"You, the Apprentice",face:"🧒",text:"Then we start small. Everything begins with a single speck of dust."}];
+  {who:"Inspector Bloat",face:"puppet:bloat",text:"The widow, the physician and the butler. All upstairs, all lying in their own special ways."},
+  {who:"You, the Apprentice",face:"puppet:apprentice",text:"Then we start small. Everything begins with a single speck of dust."}];
 function playIntro(i){
   const l=INTRO[i];
-  overlay('<div class="scene"><div class="portrait">'+l.face+'</div><div class="who">'+l.who+'</div><p>“'+l.text+'”</p>'+
+  overlay('<div class="scene"><div class="portrait">'+faceHTML(l.face)+'</div><div class="who">'+l.who+'</div><p>“'+l.text+'”</p>'+
     '<div class="dots">'+INTRO.map((_,n)=>n===i?"●":"○").join(" ")+'</div>'+
     '<button id="iNext">'+(i<INTRO.length-1?"Next ▸":"Begin investigation ▸")+'</button> <button id="iSkip" style="font-size:12px;opacity:.7">Skip</button></div>');
   const end=()=>{ S.started=true; save(); closeOverlay(); showGame(); };
@@ -762,8 +877,12 @@ $("mCases").onclick=()=>{
 $("mSettings").onclick=()=>{
   const draw=()=>{
     overlay('<h2>Settings</h2>'+
+      '<p><button id="sSfx">Sound effects: '+(CFG.sfx?"ON":"OFF")+'</button></p>'+
+      '<p><button id="sMusic">Music box: '+(CFG.music?"ON":"OFF")+'</button></p>'+
       '<p><button id="sMotion">Reduce motion: '+(CFG.reduce?"ON":"OFF")+'</button></p>'+
       '<p><button id="sErase" style="background:#3a1020">Erase saved progress</button></p><p><button id="ok">Back</button></p>');
+    $("sSfx").onclick=()=>{ CFG.sfx=!CFG.sfx; applyCfg(); draw(); };
+    $("sMusic").onclick=()=>{ CFG.music=!CFG.music; applyCfg(); draw(); };
     $("sMotion").onclick=()=>{ CFG.reduce=!CFG.reduce; applyCfg(); draw(); };
     $("sErase").onclick=()=>{ if(confirm("Erase all saved progress?")){ S=fresh(); selected=null; focus=null; save(); commit(); closeOverlay(); showMenu(); toast("Save erased."); } };
     $("ok").onclick=closeOverlay;

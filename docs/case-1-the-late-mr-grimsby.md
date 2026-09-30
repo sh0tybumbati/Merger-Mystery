@@ -70,11 +70,17 @@ Each clue comes from a merge chain, points at a suspect, and raises a question t
 
 ## Scenes (each is a merge board)
 
-1. **The Study.** Crime scene. Sources: Trace Kit, Forensic Lab. Yields *Belladonna*, *Lavender Glove*.
-2. **The Servants' Hall.** Sources: Witness Desk. Yields *Alibi Broken* (needs two statements to clash).
-3. **The Séance Parlour.** Optional side-scene, deliberate red herring. Yields *Spirit Board: CRANE*.
+| Scene | Chains | Unlocks when you have | Yields |
+|---|---|---|---|
+| **The Study** | Forensic Lab, Trace Kit | (start) | *Belladonna*, *Lavender Glove* |
+| **The Servants' Hall** | Witness Desk | Belladonna + Lavender Glove | *Alibi Broken* — a **contradiction merge**: Lady Vesper's statement (“in bed by nine”) must meet the Maid's (“conservatory door, ten to nine”) |
+| **The Séance Parlour** | Séance | Belladonna | *Spirit Board: CRANE* (deliberate red herring) |
+
+Each clue also sends a fresh Lv1 generator for the current scene.
 
 ## Showdown (Deduction Confrontation)
+
+*Prototype: three claims, answered from the clues you found (the ghost clue is always a wrong option). The fourth, trap claim needs the Allergy Note and is planned for the full version.*
 
 Lady Vesper makes four claims. The player presents a clue against each:
 

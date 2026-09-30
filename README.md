@@ -4,6 +4,7 @@ A gothic, Tim Burton–styled merge-puzzle × murder-mystery for mobile web.
 
 - **Play the prototype:** `index.html` (single file, no build step): title screen, intro scene, guided first steps, then Case 1
 - [Game Design Document](docs/GDD.md)
+- [Art & audio style guide](docs/art-style-guide.md)
 - [Case 1: The Late Mr. Grimsby](docs/case-1-the-late-mr-grimsby.md)
 
 ## Hosting on GitHub Pages

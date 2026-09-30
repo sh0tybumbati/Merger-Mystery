@@ -7,7 +7,7 @@ title: Merger Mystery — Game Design Document
 
 *Working title. Gothic merge-puzzle × episodic murder mystery. Mobile-first PWA.*
 
-[Play the prototype](../) · [Case 1 mystery graph](case-1-the-late-mr-grimsby.html)
+[Play the prototype](../) · [Case 1 mystery graph](case-1-the-late-mr-grimsby.html) · [Art & audio style guide](art-style-guide.html)
 
 ## 1. Pillars
 
@@ -38,7 +38,7 @@ title: Merger Mystery — Game Design Document
 
 ### Mystery-specific mechanics
 - **Red-herring chains** produce plausible but false clues; the string goes limp.
-- **Contradiction merges:** two conflicting clue cards merge into a rare **Contradiction** that cracks alibis.
+- **Contradiction merges:** at the testimony tier, items come in two variants (e.g. Lady Vesper's statement vs the Maid's). Matching variants refuse to merge ("these agree"); a *clashing* pair merges into a **Contradiction** clue. The game biases variant spawns toward whichever you have fewer of, so a pair is always reachable.
 - **Magnifier tool:** reveals an unknown item's chain before you commit to a merge.
 - **Sealed cells** (cobwebbed evidence bags) open when adjacent merges happen.
 - **Case File Requests** replace customer orders ("The Inspector needs a toxicology report").
@@ -143,7 +143,9 @@ Cross-chain: a Vial merged with a Reagent skips a tier. Sources level up to spaw
 
 ## 7. Roadmap
 
-1. **Paper/digital prototype** of one chain and one board (done — see the [playable prototype](../)).
-2. **Case 1 mystery graph** written first, chains and boards derived from it (see [Case 1](case-1-the-late-mr-grimsby.html)).
-3. **PixiJS vertical slice** on a real phone with placeholder Burton look.
-4. **Playtest energy curve** on the free case before fixing monetization.
+1. **Digital prototype** of the merge → reveal → pin loop. ✅
+2. **Contradiction merges** ✅. Witness statements come in two clashing variants; only a clashing pair merges into the clue.
+3. **Scene progression and showdown** ✅. Study, Servants' Hall and Séance Parlour unlock as clues are found; a three-claim showdown ends the case.
+4. **Art and audio pass** ✅ (procedural). Puppet rig, grain and vignette, particle bursts, synthesised music box and effects. See the [style guide](art-style-guide.html).
+5. **Playtest** the pacing, then decide monetization numbers.
+6. **PixiJS port** with real art, once the design has settled.
