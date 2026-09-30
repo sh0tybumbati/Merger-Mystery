@@ -140,6 +140,15 @@ button:disabled{opacity:.4}
 #coach a{display:inline-block;margin-left:6px;font-size:12px;text-decoration:underline;cursor:pointer;opacity:.7}
 .item.gen.glow{animation:glow 1s ease-in-out infinite,boil .5s steps(1) infinite}
 @keyframes glow{50%{box-shadow:0 0 14px 3px var(--amber),inset 0 0 8px #f2b84b88}}
+#scenes{margin-bottom:8px;gap:6px}
+#scenes button{font-size:12.5px;padding:7px 4px;line-height:1.15}
+#scenes button.locked{opacity:.5;background:#1a1224}
+.bubble{background:var(--bone);color:#1a1020;border:2px solid #000;border-radius:14px 14px 14px 2px;padding:10px 12px;font-size:16px;text-align:left;margin:8px 0;
+  box-shadow:3px 3px 0 #000;position:relative}
+.evi{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.evi button{font-size:13px;padding:8px 6px;line-height:1.2}
+.evi button b{display:block;font-size:26px;font-weight:400}
+.shake{animation:shake .4s}
 body.reduce *{animation:none!important;transition:none!important}
 .menuline{display:flex;gap:6px;align-items:center}
 </style>
@@ -180,6 +189,7 @@ body.reduce *{animation:none!important;transition:none!important}
 
   <!-- Evidence table -->
   <section id="viewTable">
+    <div class="tabs" id="scenes"></div>
     <div id="coach" class="hidden"></div>
     <div class="desk"><div id="grid"></div></div>
     <p class="note" id="tip">Tap-tap also works to merge; long-press selects a generator.</p>
@@ -196,7 +206,7 @@ body.reduce *{animation:none!important;transition:none!important}
       <div class="clues" id="clues"></div>
     </div>
     <p class="note" id="boardTip">Tap a clue, then tap the suspect it points to.</p>
-    <button id="confront" class="hidden" style="width:100%;background:var(--blood)">⚖️ Confront the Culprit</button>
+    <button id="confront" class="hidden" style="width:100%;background:var(--blood)">⚖️ Confront Lady Vesper</button>
   </section>
 
   <button id="reset" style="font-size:12px;opacity:.6">↺ Restart case</button>
@@ -263,27 +273,41 @@ function spawnTable(c,l){                       // -> [[tier,weight],…] capped
 }
 const mkGen = (c,l=1)=>({ g:1, c, l, ch:GEN_LEVELS[l-1].charges, cd:0 });
 const genInfo = (c,l)=>CHAINS[c].gen[l-1];
+/* Locations: each has its own board and chains; later ones unlock as clues are found */
+const SCENES = {
+  study: { name:"The Study", icon:"📚", chains:["poison","fibre"], need:[], seed:{poison:2,fibre:2} },
+  hall:  { name:"Servants' Hall", icon:"🧹", chains:["words"], need:["belladonna","glove"], seed:{words:3} },
+  seance:{ name:"Séance Parlour", icon:"🕯️", chains:["seance"], need:["belladonna"], seed:{seance:2} }
+};
+const SCENE_IDS = Object.keys(SCENES);
+function needText(id){ return SCENES[id].need.map(c=>CLUES[c].title).join(" + "); }
 const NEED = ["belladonna","alibi","glove"];   // true clues required to close the case
 
 /* =========================================================
    STATE
    ========================================================= */
-const SAVE_KEY = "merger-mystery-proto-v3";
+const SAVE_KEY = "merger-mystery-proto-v4";
 let S;
-function fresh(){
+function seedBoard(id){
   const g = Array(CELLS).fill(null);
-  // start with two Lv1 generators per chain: merge them to reach Lv2, and so on
-  Object.keys(CHAINS).forEach(c=>{ for(let n=0;n<2;n++){ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]=mkGen(c); } });
-  return { grid:g, clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
+  Object.entries(SCENES[id].seed).forEach(([c,n])=>{ for(let k=0;k<n;k++){ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]=mkGen(c); } });
+  return g;
 }
-function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.grid){ if(s.tut===undefined) s.tut=99; if(s.started===undefined) s.started=true; return s; } }catch(e){} return fresh(); }
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+function fresh(){
+  const boards = { study: seedBoard("study") };
+  return { boards, scene:"study", unlocked:["study"], grid:boards.study, clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
+}
+function load(){
+  try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; return s; } }catch(e){}
+  return fresh();
+}
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S,(k,v)=>k==="grid"?undefined:v)); }catch(e){} }
 S = load();
 
 /* ---------- generator cooldowns ---------- */
 function tickGens(){
   const now=Date.now(); let changed=false;
-  S.grid.forEach(it=>{ if(it&&it.g&&it.cd&&now>=it.cd){ it.ch=GEN_LEVELS[it.l-1].charges; it.cd=0; changed=true; } });
+  Object.values(S.boards).flat().forEach(it=>{ if(it&&it.g&&it.cd&&now>=it.cd){ it.ch=GEN_LEVELS[it.l-1].charges; it.cd=0; changed=true; } });
   return changed;
 }
 
@@ -344,7 +368,8 @@ function renderTable(){
   tr.appendChild(bin);
   renderGenInfo(); renderCoach();
   // legend
-  $("legend").innerHTML = Object.keys(CHAINS).map(k=>{
+  renderScenes();
+  $("legend").innerHTML = SCENES[S.scene].chains.map(k=>{
     const c=CHAINS[k];
     const row=c.tiers.map((t,i)=> c.pair && i+1===c.pair.tier ? c.pair.variants[0][0]+"⚡"+c.pair.variants[1][0] : t[0]).join(" → ");
     return "<div>"+row+" → 🔎 <span>"+c.name+"</span></div>";
@@ -397,9 +422,35 @@ function spawnFrom(i){
   lastPop = j; commit();
 }
 
+function renderScenes(){
+  const bar=$("scenes"); bar.innerHTML="";
+  SCENE_IDS.forEach(id=>{
+    const sc=SCENES[id], open=S.unlocked.includes(id), b=document.createElement("button");
+    b.className=(id===S.scene?"on":"")+(open?"":" locked"); b.dataset.scene=id;
+    b.innerHTML=sc.icon+"<br>"+(open?sc.name:"🔒 "+sc.name);
+    bar.appendChild(b);
+  });
+}
+$("scenes").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  const id=b.dataset.scene;
+  if(!S.unlocked.includes(id)) return toast("Locked. Find: "+needText(id));
+  switchScene(id);
+});
+function switchScene(id){ S.scene=id; S.grid=S.boards[id]; selected=null; focus=null; drag=null; commit(); }
+function checkUnlocks(){
+  const opened=[];
+  SCENE_IDS.forEach(id=>{
+    if(!S.unlocked.includes(id) && SCENES[id].need.every(c=>S.clues.includes(c))){
+      S.unlocked.push(id); S.boards[id]=seedBoard(id); opened.push(id);
+    }
+  });
+  return opened;
+}
+
 // Inspector rewards each clue with a fresh Lv1 lead (generator) for a chain whose clue is still missing
 function grantLead(){
-  const open = Object.keys(CHAINS).filter(c=>!S.clues.includes(CHAINS[c].clue));
+  const open = SCENES[S.scene].chains.filter(c=>!S.clues.includes(CHAINS[c].clue));
   const empty = emptyCells();
   if(!open.length || !empty.length) return null;
   const c = open[Math.floor(Math.random()*open.length)], i = empty[Math.floor(Math.random()*empty.length)];
@@ -500,10 +551,13 @@ function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
   S.clues.push(id); tut(3);
-  const lead = grantLead(); commit();
+  const lead = grantLead(), opened = checkUnlocks(); commit();
   overlay('<div class="big">'+c.emoji+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
-    '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>');
+    opened.map(id=>'<p style="color:var(--moss)">🔓 <b>New location unlocked:</b> '+SCENES[id].icon+' '+SCENES[id].name+'</p>').join('')+
+    '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>'+
+    (opened.length?'<p><button id="goScene">'+SCENES[opened[0]].icon+' Go to '+SCENES[opened[0]].name+'</button></p>':''));
+  if(opened.length) $("goScene").onclick=()=>{ closeOverlay(); showTab("table"); switchScene(opened[0]); };
   $("goPin").onclick=()=>{ closeOverlay(); showTab("board"); };
   $("stay").onclick=closeOverlay;
 }
@@ -578,7 +632,41 @@ $("suspects").addEventListener("click", e=>{
     setTimeout(()=>{ renderBoard(); renderHud(); },450);
   }
 });
-$("confront").onclick=()=>{
+const SHOWDOWN=[
+  { claim:"I never touched the tea, darling. I couldn't lift a teapot!", answer:"glove",
+    retort:"Your lavender glove was snagged on the study latch, Lady Vesper. Left hand. The very hand that holds your teacup." },
+  { claim:"I was in bed all evening. Ask anyone!", answer:"alibi",
+    retort:"We did ask. The maid heard the conservatory door at ten to nine. Your story and hers cannot both be true." },
+  { claim:"Poison? I wouldn't know belladonna from a buttercup!", answer:"belladonna",
+    retort:"Then why is it the one rare bloom in your conservatory? Only your garden grows it." }];
+function startShowdown(){
+  let step=0, msg="";
+  const draw=()=>{
+    const q=SHOWDOWN[step];
+    overlay('<div class="scene"><div class="portrait">👰</div><div class="who">Lady Vesper · '+(step+1)+' of '+SHOWDOWN.length+'</div>'+
+      '<div class="bubble">“'+q.claim+'”</div>'+
+      '<div class="dots">🎭 '+"♥".repeat(S.composure)+"♡".repeat(START_COMPOSURE-S.composure)+'</div>'+
+      '<div style="font-size:13px;color:var(--amber);min-height:34px" id="sdMsg">'+(msg||"Present the clue that proves her wrong.")+'</div>'+
+      '<div class="evi">'+S.clues.map(id=>'<button data-c="'+id+'"><b>'+CLUES[id].emoji+'</b>'+CLUES[id].title+'</button>').join("")+'</div></div>');
+    document.querySelectorAll(".evi button").forEach(btn=>btn.onclick=()=>present(btn.dataset.c));
+  };
+  const present=id=>{
+    const q=SHOWDOWN[step];
+    if(id===q.answer){
+      msg="";
+      overlay('<div class="scene"><div class="portrait">🧒</div><div class="who">You, the Apprentice</div><div class="bubble">“'+q.retort+'”</div>'+
+        '<p><button id="sdNext">'+(step<SHOWDOWN.length-1?"Next claim ▸":"Finish her ▸")+'</button></p></div>');
+      $("sdNext").onclick=()=>{ step++; step<SHOWDOWN.length ? draw() : finale(); };
+    } else {
+      S.composure--;
+      msg = id==="ghost" ? "Ghosts are not admissible evidence!" : "That doesn't answer her claim. Twang!";
+      if(S.composure<=0){ S.composure=START_COMPOSURE; msg+=" Poe-tential whispers: “Try the ‘"+CLUES[q.answer].title+"’ clue.” (Composure restored)"; }
+      save(); renderHud(); draw(); document.querySelector(".modal").classList.add("shake");
+    }
+  };
+  draw();
+}
+function finale(){
   S.solved=true; commit();
   overlay('<div class="spot"><div class="big">👰</div></div><h2>“It was YOU, Lady Vesper!”</h2>'+
     '<p>The <b>belladonna</b> came from your conservatory. Your <b>alibi</b> collapsed at ten to nine. And your <b>lavender glove</b> was caught on the study latch.</p>'+
@@ -586,7 +674,8 @@ $("confront").onclick=()=>{
     '<p style="color:var(--dim);font-size:13px">CASE 1 CLOSED — prototype complete.<br>Next episode: <b>“The Widow’s Undertaker”</b></p>'+
     '<button id="ok">Close</button> <button id="toMenu">Main menu</button>');
   $("ok").onclick=closeOverlay; $("toMenu").onclick=showMenu;
-};
+}
+$("confront").onclick=startShowdown;
 
 /* =========================================================
    TABS / INIT
