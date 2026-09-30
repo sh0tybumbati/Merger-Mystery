@@ -219,7 +219,9 @@ const CHAINS = {
     tiers:[["🌫️","Dust Mote"],["🧂","Powder Pinch"],["🧪","Vial of Residue"],["🔬","Lab Slide"]], clue:"belladonna" },
   words:  { name:"Witness Desk", src:"🗄️", css:"chain-words",
     gen:[["📁","Case Folder"],["🗄️","Filing Cabinet"],["🗃️","Card Index"],["🏛️","Town Archive"]],
-    tiers:[["👂","Whisper"],["💬","Rumour"],["📜","Signed Statement"]], clue:"alibi" },
+    tiers:[["👂","Whisper"],["💬","Rumour"],["📜","Signed Statement"]], clue:"alibi",
+    // contradiction tier: two variants; only a *clashing* pair merges (into the clue)
+    pair:{ tier:3, variants:[["🛌","Lady Vesper's Statement: “In bed by nine.”"],["🚪","Maid's Statement: “Conservatory door, ten to nine.”"]] } },
   fibre:  { name:"Trace Kit", src:"🧵", css:"chain-fibre",
     gen:[["🧺","Sewing Basket"],["🪡","Tailor's Kit"],["🧥","Tailor's Dummy"],["🏬","Tailor Shop"]],
     tiers:[["🧵","Loose Thread"],["🪢","Fibre Tuft"],["🧣","Silk Scrap"]], clue:"glove" },
@@ -238,7 +240,7 @@ const CULPRIT = "vesper";
 const CLUES = {
   belladonna:{ title:"Toxin: Belladonna", emoji:"☠️", who:"vesper",
     text:"The slide shows belladonna, a rare bloom. Only a garden that grows it could have supplied it." },
-  alibi:{ title:"Alibi Broken", emoji:"⏰", who:"vesper",
+  alibi:{ title:"Alibi Broken", emoji:"⏰", who:"vesper", kind:"contradiction",
     text:"Two statements clash: Lady Vesper claimed she was in bed at nine, yet the maid heard the conservatory door at ten to." },
   glove:{ title:"Lavender Glove", emoji:"🧤", who:"vesper",
     text:"A scrap of lavender silk on the study latch, torn from a left-hand glove. Lavender is Lady Vesper's colour." },
@@ -291,7 +293,14 @@ function tickGens(){
 const $ = id => document.getElementById(id);
 let toastT;
 function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.add("hidden"),2200); }
-const item = (c,t) => CHAINS[c].tiers[t-1];
+const item = (c,t,v) => { const ch=CHAINS[c]; return (ch.pair && t===ch.pair.tier && v!==undefined) ? ch.pair.variants[v] : ch.tiers[t-1]; };
+const itemOf = it => item(it.c,it.t,it.v);
+const mkItem = (c,t) => { const it={c,t}, pr=CHAINS[c].pair; if(pr && t===pr.tier) it.v=scarceVariant(c); return it; };
+function scarceVariant(c){          // keep both sides of a contradiction available: pick the variant we have fewer of
+  const pr=CHAINS[c].pair, n=pr.variants.map(()=>0);
+  S.grid.forEach(x=>{ if(x&&!x.g&&x.c===c&&x.t===pr.tier&&x.v!==undefined) n[x.v]++; });
+  return n[0]===n[1] ? Math.floor(Math.random()*2) : (n[0]<n[1]?0:1);
+}
 const maxTier = c => CHAINS[c].tiers.length;
 
 /* =========================================================
@@ -318,7 +327,7 @@ function renderTable(){
           (cool ? '<span class="cdtxt" data-cd="'+it.cd+'"></span>'
                 : '<span class="pips">'+"●".repeat(it.ch)+"○".repeat(GEN_LEVELS[it.l-1].charges-it.ch)+'</span>');
       } else {
-        const [emo,name] = item(it.c,it.t);
+        const [emo,name] = itemOf(it);
         e.className = "item "+CHAINS[it.c].css + (lastPop===i?" pop":"");
         e.title = name;
         e.innerHTML = emo + '<span class="tier">'+it.t+'</span>';
@@ -337,7 +346,8 @@ function renderTable(){
   // legend
   $("legend").innerHTML = Object.keys(CHAINS).map(k=>{
     const c=CHAINS[k];
-    return "<div>"+c.tiers.map(t=>t[0]).join(" → ")+" → 🔎 <span>"+c.name+"</span></div>";
+    const row=c.tiers.map((t,i)=> c.pair && i+1===c.pair.tier ? c.pair.variants[0][0]+"⚡"+c.pair.variants[1][0] : t[0]).join(" → ");
+    return "<div>"+row+" → 🔎 <span>"+c.name+"</span></div>";
   }).join("");
 }
 
@@ -383,7 +393,7 @@ function spawnFrom(i){
   const j = empty[Math.floor(Math.random()*empty.length)];
   tut(0);
   gen.ch--; if(gen.ch<=0) gen.cd = Date.now()+GEN_LEVELS[gen.l-1].cd*1000;
-  S.grid[j] = { c:gen.c, t:pickTier(gen.c,gen.l) };
+  S.grid[j] = mkItem(gen.c,pickTier(gen.c,gen.l));
   lastPop = j; commit();
 }
 
@@ -415,8 +425,13 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
     return commit();
   }
   if(!a.g && !b.g && a.c===b.c && a.t===b.t){          // merge evidence
+    const pr=CHAINS[a.c].pair;
+    if(pr && a.t===pr.tier){                            // contradiction merge
+      if(a.v===b.v){ toast("These two statements agree. You need testimony that clashes."); return renderTable(); }
+      S.grid[from]=null; S.grid[to]=null; tut(1); commit(); reveal(CHAINS[a.c].clue); return;
+    }
     S.grid[from]=null; tut(1);
-    if(a.t < maxTier(a.c)){ b.t++; lastPop=to; commit(); }
+    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; commit(); }
     else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
     return;
   }
@@ -439,7 +454,7 @@ window.addEventListener("pointermove", e=>{
   if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>(S.grid[drag.i].g?26:12)){
     drag.moved=true; clearTimeout(drag.timer);
     const it = S.grid[drag.i];
-    ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=it.g?genInfo(it.c,it.l)[0]:item(it.c,it.t)[0];
+    ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=it.g?genInfo(it.c,it.l)[0]:itemOf(it)[0];
     document.body.appendChild(ghost);
   }
   if(ghost){ ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px";
@@ -486,7 +501,7 @@ function reveal(id){
   if(S.clues.includes(id)){ toast("Already on file."); return; }
   S.clues.push(id); tut(3);
   const lead = grantLead(); commit();
-  overlay('<div class="big">'+c.emoji+'</div><h2>Clue Discovered!</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
+  overlay('<div class="big">'+c.emoji+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
     '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>');
   $("goPin").onclick=()=>{ closeOverlay(); showTab("board"); };
@@ -508,7 +523,7 @@ function renderBoard(){
     const c=CLUES[id], d=document.createElement("div");
     d.className="card clue"+(armedClue===id?" armed":"")+(S.links[id]?" linked":""); d.dataset.c=id;
     d.style.setProperty("--r",[1,-1.2,.6,-.8][n%4]+"deg");
-    d.innerHTML='<span class="face">'+c.emoji+'</span><h4>'+c.title+'</h4>'+c.text+
+    d.innerHTML='<span class="face">'+c.emoji+'</span><h4>'+c.title+'</h4>'+(c.kind==='contradiction'?'<small style="color:#a01030;font-weight:700">⚡ CONTRADICTION</small>':'')+c.text+
       (S.links[id]?'<small>🔗 strung to '+SUSPECTS[S.links[id]].name+'</small>':'');
     cl.appendChild(d);
   });
