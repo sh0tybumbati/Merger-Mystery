@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#120c1a">
+<title>Merger Mystery</title>
+<style>
+:root{
+  --ink:#120c1a; --velvet:#1e1429; --plum:#2d1d3d; --bone:#efe6d2; --dim:#9a8fa8;
+  --blood:#c8102e; --amber:#f2b84b; --moss:#6fa88a;
+  --serif: "IM Fell English","Georgia","Times New Roman",serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;background:var(--ink);color:var(--bone);font-family:var(--serif);overscroll-behavior:none}
+body{display:flex;justify-content:center;
+  background:radial-gradient(ellipse at 50% 0%,#2a1a3a 0%,var(--ink) 65%);}
+#app{width:100%;max-width:440px;min-height:100%;padding:env(safe-area-inset-top) 12px 16px;display:flex;flex-direction:column;gap:10px}
+h1{font-size:22px;letter-spacing:.06em;margin:10px 0 0;text-align:center;font-weight:400;
+  text-shadow:2px 2px 0 var(--blood)}
+h1 small{display:block;font-size:12px;letter-spacing:.2em;color:var(--dim);text-shadow:none;margin-top:2px}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.pill{background:var(--plum);border:2px solid #000;border-radius:14px 4px 14px 4px;padding:4px 10px;box-shadow:2px 2px 0 #000}
+.tabs{display:flex;gap:8px}
+.tabs button{flex:1}
+button{font-family:inherit;font-size:15px;color:var(--bone);background:var(--plum);border:2px solid #000;
+  border-radius:12px 3px 12px 3px;padding:9px 10px;box-shadow:3px 3px 0 #000;cursor:pointer}
+button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 #000}
+button.on{background:var(--blood)}
+button:disabled{opacity:.4}
+.dot{display:inline-block;min-width:16px;height:16px;line-height:16px;border-radius:8px;background:var(--blood);font-size:11px;text-align:center;margin-left:4px;color:#fff}
+.hidden{display:none!important}
+
+/* ---------- Evidence table ---------- */
+.desk{background:linear-gradient(#3b2a20,#2a1d16);border:3px solid #000;border-radius:8px 16px 6px 14px;
+  padding:8px;box-shadow:4px 4px 0 #000, inset 0 0 0 3px #4f3a2c;transform:rotate(-.4deg)}
+#grid{display:grid;grid-template-columns:repeat(6,1fr);gap:4px;touch-action:none}
+.cell{aspect-ratio:1;background:#160f1f;border-radius:5px 9px 5px 9px;border:2px solid #0a0610;
+  display:flex;align-items:center;justify-content:center;position:relative;font-size:clamp(22px,8vw,34px)}
+.cell:nth-child(odd){transform:rotate(.6deg)}
+.cell:nth-child(3n){transform:rotate(-.7deg)}
+.cell.sel{outline:3px solid var(--amber);outline-offset:-3px}
+.cell.hint{outline:3px dashed var(--moss);outline-offset:-3px}
+.item{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:6px;position:relative;
+  animation:boil .5s steps(1) infinite}
+.item .tier{position:absolute;right:2px;bottom:0;font-size:10px;color:var(--amber);font-family:sans-serif}
+.item.pop{animation:pop .3s ease-out, boil .5s steps(1) infinite .3s}
+.chain-poison{background:radial-gradient(circle,#2f4a2f55,transparent 70%)}
+.chain-words{background:radial-gradient(circle,#4a2f4a66,transparent 70%)}
+.chain-fibre{background:radial-gradient(circle,#2f3f6a66,transparent 70%)}
+.chain-seance{background:radial-gradient(circle,#6a5a2f66,transparent 70%)}
+@keyframes boil{0%{transform:rotate(0)}25%{transform:rotate(1.5deg) translateY(-1px)}50%{transform:rotate(-1deg)}75%{transform:rotate(1deg) translateY(1px)}}
+@keyframes pop{0%{transform:scale(.2)}70%{transform:scale(1.25)}100%{transform:scale(1)}}
+.ghost{position:fixed;pointer-events:none;z-index:50;font-size:38px;transform:translate(-50%,-60%) rotate(-6deg);
+  filter:drop-shadow(3px 5px 0 #000a)}
+.tray{display:flex;gap:6px;justify-content:space-between}
+.src{flex:1;padding:6px 2px;font-size:12px;line-height:1.15;text-align:center}
+.src b{display:block;font-size:26px;font-weight:400}
+.bin{flex:.8;border:2px dashed var(--dim);border-radius:8px;text-align:center;font-size:12px;padding:6px 2px;color:var(--dim)}
+.bin b{display:block;font-size:26px;font-weight:400}
+.bin.over,.bin.sel{border-color:var(--blood);color:var(--blood)}
+.note{font-size:13px;color:var(--dim);text-align:center;margin:2px 0}
+.legend{font-size:12px;color:var(--dim);line-height:1.5}
+.legend div{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+
+/* ---------- Red string board ---------- */
+.cork{position:relative;background:repeating-linear-gradient(45deg,#5a4030 0 6px,#4e3627 6px 12px);
+  border:3px solid #000;border-radius:6px 14px 6px 14px;padding:10px;box-shadow:4px 4px 0 #000;min-height:420px}
+#strings{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;overflow:visible}
+.row{display:flex;gap:8px;justify-content:space-between}
+.suspects{margin-bottom:64px}
+.card{position:relative;flex:1;background:var(--bone);color:#1a1020;border:2px solid #000;border-radius:3px;padding:8px 6px 6px;
+  font-size:12px;line-height:1.25;box-shadow:3px 3px 0 #000a;transform:rotate(var(--r,0deg))}
+.card::before{content:"";position:absolute;top:-7px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;
+  background:var(--blood);border:2px solid #000;z-index:6}
+.card h4{margin:0 0 3px;font-size:14px;font-weight:700}
+.card .face{font-size:34px;text-align:center;display:block}
+.card.sus{cursor:pointer;background:#d9cfe6}
+.card.sus.armed{outline:3px dashed var(--blood)}
+.card.sus.shake{animation:shake .4s}
+.card.sus.solved{background:#f3c6cf}
+.clues{display:grid;grid-template-columns:1fr 1fr;gap:16px 10px}
+.clue{cursor:pointer}
+.clue.armed{outline:3px solid var(--amber)}
+.clue.linked{background:#dfeedd}
+.clue small{display:block;color:#5a4a68;margin-top:4px}
+.empty{grid-column:1/-1;text-align:center;color:#d9c9a8;font-size:14px;padding:30px 10px}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px) rotate(-2deg)}60%{transform:translateX(6px) rotate(2deg)}}
+
+/* ---------- Overlay / toast ---------- */
+#overlay{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal{max-width:380px;width:100%;background:var(--velvet);border:3px solid #000;border-radius:14px 4px 14px 4px;padding:18px;
+  box-shadow:5px 5px 0 var(--blood);text-align:center}
+.modal h2{margin:0 0 8px;font-weight:400;letter-spacing:.05em}
+.modal p{font-size:15px;line-height:1.4;margin:8px 0}
+.modal .big{font-size:56px}
+.modal .paper{background:var(--bone);color:#1a1020;padding:10px;border-radius:3px;transform:rotate(-1.5deg);text-align:left;font-size:14px}
+.spot{background:radial-gradient(circle at 50% 30%,#fff3 0,transparent 55%)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--plum);border:2px solid #000;
+  border-radius:12px;padding:8px 14px;z-index:120;font-size:14px;box-shadow:3px 3px 0 #000;max-width:90%;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+  <h1>The Late Mr. Grimsby<small>A MERGER MYSTERY &middot; CASE 1 &middot; PAPER PROTOTYPE</small></h1>
+
+  <div class="hud">
+    <div class="pill" id="energy"></div>
+    <div class="pill" id="composure"></div>
+  </div>
+
+  <div class="tabs">
+    <button id="tabTable" class="on">🔍 Evidence Table</button>
+    <button id="tabBoard">📌 Red-String Board<span id="badge" class="dot hidden">0</span></button>
+  </div>
+
+  <!-- Evidence table -->
+  <section id="viewTable">
+    <div class="desk"><div id="grid"></div></div>
+    <p class="note" id="tip">Tap a crate to spawn evidence. Drag two matching items together (or tap one, then the other).</p>
+    <div class="tray" id="tray"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <!-- Board -->
+  <section id="viewBoard" class="hidden">
+    <div class="cork" id="cork">
+      <svg id="strings"></svg>
+      <div class="row suspects" id="suspects"></div>
+      <div class="clues" id="clues"></div>
+    </div>
+    <p class="note" id="boardTip">Tap a clue, then tap the suspect it points to.</p>
+    <button id="confront" class="hidden" style="width:100%;background:var(--blood)">⚖️ Confront the Culprit</button>
+  </section>
+
+  <button id="reset" style="font-size:12px;opacity:.6">↺ Restart case</button>
+  <p class="note"><a style="color:var(--dim)" href="docs/GDD.html">Design doc</a> · <a style="color:var(--dim)" href="docs/case-1-the-late-mr-grimsby.html">Case 1 script</a></p>
+</div>
+
+<div id="overlay" class="hidden"></div>
+<div id="toast" class="hidden"></div>
+
+<script>
+/* =========================================================
+   DATA  — everything content-related lives here (data-driven!)
+   ========================================================= */
+const COLS = 6, ROWS = 7, CELLS = COLS * ROWS;
+const MAX_ENERGY = 40, REGEN_MS = 6000, START_COMPOSURE = 3;
+
+const CHAINS = {
+  poison: { name:"Forensic Lab", src:"🧰", css:"chain-poison",
+    tiers:[["🌫️","Dust Mote"],["🧂","Powder Pinch"],["🧪","Vial of Residue"],["🔬","Lab Slide"]], clue:"belladonna" },
+  words:  { name:"Witness Desk", src:"🗄️", css:"chain-words",
+    tiers:[["👂","Whisper"],["💬","Rumour"],["📜","Signed Statement"]], clue:"alibi" },
+  fibre:  { name:"Trace Kit", src:"🧵", css:"chain-fibre",
+    tiers:[["🧵","Loose Thread"],["🪢","Fibre Tuft"],["🧣","Silk Scrap"]], clue:"glove" },
+  seance: { name:"Séance Parlour", src:"🕯️", css:"chain-seance",
+    tiers:[["🕯️","Candle Stub"],["🫗","Wax Pool"],["🔮","Spirit Board"]], clue:"ghost" }
+};
+
+const SUSPECTS = {
+  vesper:{ name:"Lady Vesper", face:"👰", bio:"The widow. Prizes rare blooms in her private conservatory." },
+  morrow:{ name:"Dr. Morrow", face:"🩺", bio:"The physician. Was seen at his club all evening." },
+  crane: { name:"Mr. Crane", face:"🎩", bio:"The butler. Allergic to every flower; never enters a greenhouse." }
+};
+const CULPRIT = "vesper";
+
+const CLUES = {
+  belladonna:{ title:"Toxin: Belladonna", emoji:"☠️", who:"vesper",
+    text:"The slide shows belladonna, a rare bloom. Only a garden that grows it could have supplied it." },
+  alibi:{ title:"Alibi Broken", emoji:"⏰", who:"vesper",
+    text:"Two statements clash: Lady Vesper claimed she was in bed at nine, yet the maid heard the conservatory door at ten to." },
+  glove:{ title:"Lavender Glove", emoji:"🧤", who:"vesper",
+    text:"A scrap of lavender silk on the study latch, torn from a left-hand glove. Lavender is Lady Vesper's colour." },
+  ghost:{ title:"Spirit Board: “C-R-A-N-E”", emoji:"👻", who:null,
+    text:"The planchette spelled CRANE. (Ghosts, sadly, are not admissible evidence.)" }
+};
+const NEED = ["belladonna","alibi","glove"];   // true clues required to close the case
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const SAVE_KEY = "merger-mystery-proto-v1";
+let S;
+function fresh(){
+  const g = Array(CELLS).fill(null);
+  // seeded starting board
+  const seed = [["poison",1],["poison",1],["words",1],["words",1],["fibre",1],["seance",1],["poison",2],["words",2]];
+  seed.forEach(([c,t])=>{ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]={c,t}; });
+  return { grid:g, energy:MAX_ENERGY, ts:Date.now(), clues:[], links:{}, composure:START_COMPOSURE, solved:false };
+}
+function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.grid) return s; }catch(e){} return fresh(); }
+function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
+S = load();
+
+/* ---------- energy regen ---------- */
+function regen(){
+  const now = Date.now();
+  if(S.energy >= MAX_ENERGY){ S.ts = now; return; }
+  const n = Math.floor((now - S.ts)/REGEN_MS);
+  if(n>0){ S.energy = Math.min(MAX_ENERGY, S.energy+n); S.ts += n*REGEN_MS; }
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+const $ = id => document.getElementById(id);
+let toastT;
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.add("hidden"),2200); }
+const item = (c,t) => CHAINS[c].tiers[t-1];
+const maxTier = c => CHAINS[c].tiers.length;
+
+/* =========================================================
+   EVIDENCE TABLE
+   ========================================================= */
+let selected = null, lastPop = -1;
+
+function renderTable(){
+  regen();
+  $("energy").innerHTML = "🕯️ Candlelight " + S.energy + "/" + MAX_ENERGY;
+  $("composure").innerHTML = "🎭 Composure " + "♥".repeat(S.composure) + "♡".repeat(START_COMPOSURE-S.composure);
+  const g = $("grid"); g.innerHTML = "";
+  S.grid.forEach((it,i)=>{
+    const d = document.createElement("div");
+    d.className = "cell" + (selected===i?" sel":"");
+    d.dataset.i = i;
+    if(it){
+      const [emo,name] = item(it.c,it.t);
+      const e = document.createElement("div");
+      e.className = "item "+CHAINS[it.c].css + (lastPop===i?" pop":"");
+      e.title = name;
+      e.innerHTML = emo + '<span class="tier">'+it.t+'</span>';
+      d.appendChild(e);
+    }
+    g.appendChild(d);
+  });
+  lastPop = -1;
+  // tray
+  const tr = $("tray"); tr.innerHTML = "";
+  Object.keys(CHAINS).forEach(k=>{
+    const b = document.createElement("button"); b.className="src"; b.dataset.src=k;
+    b.innerHTML = "<b>"+CHAINS[k].src+"</b>"+CHAINS[k].name+"<br>−1🕯️";
+    tr.appendChild(b);
+  });
+  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.innerHTML="<b>🪦</b>File away";
+  tr.appendChild(bin);
+  // legend
+  $("legend").innerHTML = Object.keys(CHAINS).map(k=>{
+    const c=CHAINS[k];
+    return "<div>"+c.tiers.map(t=>t[0]).join(" → ")+" → 🔎 <span>"+c.name+"</span></div>";
+  }).join("");
+}
+
+function spawn(k){
+  regen();
+  if(S.energy<=0){ toast("Out of candlelight! Wait for it to regrow."); return; }
+  const empty = S.grid.map((v,i)=>v?-1:i).filter(i=>i>=0);
+  if(!empty.length){ toast("Table's full — merge or file something away."); return; }
+  const i = empty[Math.floor(Math.random()*empty.length)];
+  S.energy--; if(S.energy===MAX_ENERGY-1) S.ts=Date.now();
+  S.grid[i] = { c:k, t: Math.random()<.2 && maxTier(k)>2 ? 2 : 1 };
+  lastPop = i; commit();
+}
+
+function act(from,to){        // from: cell index, to: cell index | "bin"
+  if(from===to) return;
+  const a = S.grid[from];
+  if(!a) return;
+  if(to==="bin"){ S.grid[from]=null; toast("Filed away."); return commit(); }
+  const b = S.grid[to];
+  if(!b){ S.grid[to]=a; S.grid[from]=null; return commit(); }
+  if(a.c===b.c && a.t===b.t){
+    S.grid[from]=null;
+    if(a.t < maxTier(a.c)){ b.t++; lastPop=to; commit(); }
+    else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
+    return;
+  }
+  S.grid[from]=b; S.grid[to]=a; commit();   // swap
+}
+
+/* ---- pointer handling: drag OR tap-tap ---- */
+let drag=null, ghost=null;
+$("grid").addEventListener("pointerdown", e=>{
+  const c = e.target.closest(".cell"); if(!c) return;
+  const i = +c.dataset.i;
+  drag = { i, x:e.clientX, y:e.clientY, moved:false, had: !!S.grid[i] };
+});
+window.addEventListener("pointermove", e=>{
+  if(!drag || !drag.had) return;
+  if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>8){
+    drag.moved=true;
+    const it = S.grid[drag.i];
+    ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=item(it.c,it.t)[0];
+    document.body.appendChild(ghost);
+  }
+  if(ghost){ ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px";
+    const el=document.elementFromPoint(e.clientX,e.clientY); $("bin")?.classList.toggle("over", !!el?.closest("#bin")); }
+});
+window.addEventListener("pointerup", e=>{
+  if(!drag) return;
+  const d = drag; drag=null;
+  if(ghost){ ghost.remove(); ghost=null; }
+  const el = document.elementFromPoint(e.clientX,e.clientY);
+  const cell = el?.closest(".cell"), bin = el?.closest("#bin");
+  if(d.moved){
+    selected=null;
+    if(bin) act(d.i,"bin"); else if(cell) act(d.i,+cell.dataset.i); else renderTable();
+    return;
+  }
+  // tap
+  const i = d.i;
+  if(selected===null){ if(S.grid[i]){ selected=i; renderTable(); } }
+  else if(selected===i){ selected=null; renderTable(); }
+  else { const from=selected; selected=null; act(from,i); }
+});
+$("tray").addEventListener("click", e=>{
+  const s = e.target.closest(".src"); if(s){ spawn(s.dataset.src); return; }
+  if(e.target.closest("#bin") && typeof selected==="number"){ const f=selected; selected=null; act(f,"bin"); }
+});
+
+/* =========================================================
+   REVEAL & BOARD
+   ========================================================= */
+function overlay(html){ const o=$("overlay"); o.innerHTML='<div class="modal">'+html+'</div>'; o.classList.remove("hidden"); }
+function closeOverlay(){ $("overlay").classList.add("hidden"); }
+
+function reveal(id){
+  const c = CLUES[id];
+  if(S.clues.includes(id)){ toast("Already on file."); return; }
+  S.clues.push(id); commit();
+  overlay('<div class="big">'+c.emoji+'</div><h2>Clue Discovered!</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
+    '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>');
+  $("goPin").onclick=()=>{ closeOverlay(); showTab("board"); };
+  $("stay").onclick=closeOverlay;
+}
+
+let armedClue=null;
+function renderBoard(){
+  const sp = $("suspects"); sp.innerHTML="";
+  Object.entries(SUSPECTS).forEach(([k,s],n)=>{
+    const d=document.createElement("div"); d.className="card sus"+(armedClue?" armed":"")+(S.solved&&k===CULPRIT?" solved":""); d.dataset.s=k;
+    d.style.setProperty("--r",[-1.5,1,-.5][n]+"deg");
+    d.innerHTML='<span class="face">'+s.face+'</span><h4>'+s.name+'</h4>'+s.bio;
+    sp.appendChild(d);
+  });
+  const cl=$("clues"); cl.innerHTML="";
+  if(!S.clues.length) cl.innerHTML='<div class="empty">No clues yet.<br>Merge evidence on the Evidence Table to reveal some.</div>';
+  S.clues.forEach((id,n)=>{
+    const c=CLUES[id], d=document.createElement("div");
+    d.className="card clue"+(armedClue===id?" armed":"")+(S.links[id]?" linked":""); d.dataset.c=id;
+    d.style.setProperty("--r",[1,-1.2,.6,-.8][n%4]+"deg");
+    d.innerHTML='<span class="face">'+c.emoji+'</span><h4>'+c.title+'</h4>'+c.text+
+      (S.links[id]?'<small>🔗 strung to '+SUSPECTS[S.links[id]].name+'</small>':'');
+    cl.appendChild(d);
+  });
+  const linked = NEED.filter(id=>S.links[id]===CULPRIT).length;
+  $("confront").classList.toggle("hidden", !(linked===NEED.length && !S.solved));
+  $("boardTip").textContent = S.solved ? "Case closed." : armedClue ? "Now tap the suspect it points to." : "Tap a clue, then tap the suspect it points to. ("+linked+"/"+NEED.length+" damning threads)";
+  const n=S.clues.filter(id=>!S.links[id]).length; const b=$("badge"); b.textContent=n; b.classList.toggle("hidden",!n);
+  requestAnimationFrame(drawStrings);
+}
+
+function drawStrings(){
+  const svg=$("strings"), cork=$("cork").getBoundingClientRect();
+  if(!cork.width) return;
+  let out="";
+  Object.entries(S.links).forEach(([cid,sid])=>{
+    const a=document.querySelector('.clue[data-c="'+cid+'"]'), b=document.querySelector('.sus[data-s="'+sid+'"]');
+    if(!a||!b) return;
+    out+=stringPath(a,b,cork,"#c8102e",4,"");
+  });
+  svg.innerHTML=out;
+}
+function stringPath(a,b,cork,col,w,extra){
+  const A=a.getBoundingClientRect(), B=b.getBoundingClientRect();
+  const x1=A.left+A.width/2-cork.left, y1=A.top-cork.top;
+  const x2=B.left+B.width/2-cork.left, y2=B.bottom-cork.top;
+  const sag=Math.abs(y1-y2)*.12+24;                       // sagging string
+  const mx=(x1+x2)/2, my=(y1+y2)/2+sag;
+  return '<path d="M'+x1+' '+y1+' Q'+mx+' '+my+' '+x2+' '+y2+'" stroke="'+col+'" stroke-width="'+w+'" fill="none" stroke-linecap="round" '+extra+'/>';
+}
+
+$("clues").addEventListener("click", e=>{
+  const c=e.target.closest(".clue"); if(!c||S.solved) return;
+  const id=c.dataset.c;
+  if(S.links[id]){ delete S.links[id]; armedClue=id; }   // tap a strung clue to re-string it
+  else armedClue = armedClue===id ? null : id;
+  commit();
+});
+$("suspects").addEventListener("click", e=>{
+  const s=e.target.closest(".sus"); if(!s||!armedClue||S.solved) return;
+  const sid=s.dataset.s, cid=armedClue, clue=CLUES[cid];
+  armedClue=null;
+  if(clue.who===sid){ S.links[cid]=sid; toast("The string pulls taut. ✔"); commit(); }
+  else {
+    // wrong: draw a limp string that snaps
+    const a=document.querySelector('.clue[data-c="'+cid+'"]'), cork=$("cork").getBoundingClientRect();
+    $("strings").insertAdjacentHTML("beforeend", stringPath(a,s,cork,"#777",3,'stroke-dasharray="6 6"'));
+    s.classList.add("shake");
+    S.composure--;
+    let msg = clue.who ? "Twang! That doesn't connect "+SUSPECTS[sid].name+" to the crime." : "Twang! Ghosts leave no fingerprints. A red herring.";
+    if(S.composure<=0){ msg+=" (Composure restored — the Inspector gives you a nudge: three clues, one culprit.)"; S.composure=START_COMPOSURE; }
+    toast(msg); save();
+    setTimeout(()=>{ renderBoard(); renderHud(); },450);
+  }
+});
+$("confront").onclick=()=>{
+  S.solved=true; commit();
+  overlay('<div class="spot"><div class="big">👰</div></div><h2>“It was YOU, Lady Vesper!”</h2>'+
+    '<p>The <b>belladonna</b> came from your conservatory. Your <b>alibi</b> collapsed at ten to nine. And your <b>lavender glove</b> was caught on the study latch.</p>'+
+    '<p><i>Lady Vesper laughs, and the candles gutter out…</i></p>'+
+    '<p style="color:var(--dim);font-size:13px">CASE 1 CLOSED — prototype complete.<br>Next episode: <b>“The Widow’s Undertaker”</b></p>'+
+    '<button id="ok">Close</button>');
+  $("ok").onclick=closeOverlay;
+};
+
+/* =========================================================
+   TABS / INIT
+   ========================================================= */
+function renderHud(){
+  regen();
+  $("energy").innerHTML = "🕯️ Candlelight " + S.energy + "/" + MAX_ENERGY;
+  $("composure").innerHTML = "🎭 Composure " + "♥".repeat(S.composure) + "♡".repeat(START_COMPOSURE-S.composure);
+}
+function commit(){ save(); renderTable(); renderBoard(); }
+function showTab(t){
+  const b = t==="board";
+  $("viewTable").classList.toggle("hidden",b); $("viewBoard").classList.toggle("hidden",!b);
+  $("tabTable").classList.toggle("on",!b); $("tabBoard").classList.toggle("on",b);
+  if(b) renderBoard(); else renderTable();
+}
+$("tabTable").onclick=()=>showTab("table");
+$("tabBoard").onclick=()=>showTab("board");
+$("reset").onclick=()=>{ if(confirm("Restart the case from scratch?")){ S=fresh(); selected=null; armedClue=null; commit(); showTab("table"); } };
+window.addEventListener("resize",drawStrings);
+setInterval(renderHud,1000);
+commit();
+</script>
+</body>
+</html>
