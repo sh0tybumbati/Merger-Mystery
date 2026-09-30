@@ -370,7 +370,7 @@ function burstAt(x,y,glyphs){
     e.style.left=x+"px"; e.style.top=y+"px";
     const a=Math.random()*Math.PI*2, r=30+Math.random()*50;
     e.style.setProperty("--dx",Math.cos(a)*r+"px"); e.style.setProperty("--dy",(Math.sin(a)*r-20)+"px"); e.style.setProperty("--r",(Math.random()*120-60)+"deg");
-    document.body.appendChild(e); setTimeout(()=>e.remove(),800);
+    e.addEventListener("animationend",()=>e.remove()); document.body.appendChild(e); setTimeout(()=>e.remove(),900);
   }
 }
 function fx(i,glyphs){
@@ -542,9 +542,22 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
 
 /* ---- pointer handling: drag OR tap-tap ---- */
 let drag=null, ghost=null;
+function endDrag(){                                  // single place that tears down any drag in progress
+  if(drag) clearTimeout(drag.timer);
+  drag=null;
+  if(ghost){ ghost.remove(); ghost=null; }
+  document.querySelectorAll(".ghost").forEach(g=>g.remove());
+  const bin=$("bin"); if(bin) bin.classList.remove("over");
+}
+// a cancelled touch (system gesture, notification, lost focus) must not leave the drag icon floating
+window.addEventListener("pointercancel",()=>{ if(drag||ghost){ endDrag(); renderTable(); } });
+window.addEventListener("blur",()=>{ if(drag||ghost){ endDrag(); renderTable(); } });
+document.addEventListener("visibilitychange",()=>{ if(document.hidden && (drag||ghost)){ endDrag(); renderTable(); } });
 $("grid").addEventListener("pointerdown", e=>{
   const c = e.target.closest(".cell"); if(!c) return;
   const i = +c.dataset.i, it = S.grid[i];
+  endDrag();                                        // never start a gesture with a stale ghost/timer around
+  try{ $("grid").setPointerCapture(e.pointerId); }catch(_){}
   drag = { i, x:e.clientX, y:e.clientY, moved:false, had: !!it, long:false };
   if(it && it.g){                                   // long-press selects a generator (for tap-tap upgrading)
     const d=drag;
@@ -564,8 +577,7 @@ window.addEventListener("pointermove", e=>{
 });
 window.addEventListener("pointerup", e=>{
   if(!drag) return;
-  const d = drag; drag=null; clearTimeout(d.timer);
-  if(ghost){ ghost.remove(); ghost=null; }
+  const d = drag; endDrag();
   const el = document.elementFromPoint(e.clientX,e.clientY);
   const cell = el?.closest(".cell"), bin = el?.closest("#bin");
   if(d.moved && cell && +cell.dataset.i===d.i){ d.moved=false; }   // dropped where it started: treat as a tap
@@ -889,6 +901,7 @@ $("reset").onclick=()=>{ if(confirm("Restart the case from scratch?")){ S=fresh(
 window.addEventListener("resize",drawStrings);
 setInterval(()=>{                                   // cooldown ticker: full re-render only when a generator refills
   if(drag && drag.moved) return;
+  if(!drag) document.querySelectorAll(".ghost").forEach(g=>g.remove());
   if(tickGens()) renderTable(); else tickCooldownText();
 },500);
 applyCfg(); commit(); showMenu();
