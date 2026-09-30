@@ -55,7 +55,7 @@ button:disabled{opacity:.4}
 .item.gen.cool{filter:grayscale(.7) brightness(.7)}
 .item.gen.lvmax{box-shadow:inset 0 0 10px var(--blood),0 0 6px var(--blood)}
 .lv{position:absolute;left:1px;top:0;font-size:10px;color:#000;background:var(--amber);border-radius:6px;padding:0 4px;font-family:sans-serif;font-weight:700}
-.pips{position:absolute;left:0;right:0;bottom:1px;text-align:center;font-size:7px;letter-spacing:1px;color:var(--amber);font-family:sans-serif;line-height:1}
+.pips{position:absolute;left:0;right:0;bottom:1px;text-align:center;font-size:6px;letter-spacing:0;color:var(--amber);font-family:sans-serif;line-height:1}
 .cdtxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-family:sans-serif;color:#fff;text-shadow:1px 1px 2px #000;font-weight:700}
 .geninfo{background:var(--velvet);border:2px solid #000;border-radius:10px 3px 10px 3px;padding:8px 10px;font-size:13px;line-height:1.4;box-shadow:3px 3px 0 #000;min-height:64px}
 .geninfo b{color:var(--amber)}
@@ -193,10 +193,10 @@ const CLUES = {
    charges = spawns before cooldown; cd = seconds to refill; w = spawn weights for item tiers 1,2,3…
    (higher levels unlock higher-tier items; final tier is never spawned directly — it must be merged) */
 const GEN_LEVELS = [
-  { charges:3, cd:90, w:[100] },
-  { charges:4, cd:80, w:[65,35] },
-  { charges:5, cd:70, w:[30,50,20] },
-  { charges:7, cd:60, w:[10,35,55] }
+  { charges:6,  cd:30, w:[100] },
+  { charges:8,  cd:30, w:[65,35] },
+  { charges:10, cd:28, w:[30,50,20] },
+  { charges:14, cd:26, w:[10,35,55] }
 ];
 const GEN_MAX = GEN_LEVELS.length;
 function spawnTable(c,l){                       // -> [[tier,weight],…] capped below the chain's final tier
@@ -210,7 +210,7 @@ const NEED = ["belladonna","alibi","glove"];   // true clues required to close t
 /* =========================================================
    STATE
    ========================================================= */
-const SAVE_KEY = "merger-mystery-proto-v2";
+const SAVE_KEY = "merger-mystery-proto-v3";
 let S;
 function fresh(){
   const g = Array(CELLS).fill(null);

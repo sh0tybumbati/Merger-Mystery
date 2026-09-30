@@ -56,10 +56,10 @@ Sources are **items on the merge board**, not a menu. Each chain has its own gen
 
 | Level | Charges | Refill | Spawn weights (tier 1 / 2 / 3) |
 |---|---|---|---|
-| 1 | 3 | 90 s | 100 / – / – |
-| 2 | 4 | 80 s | 65 / 35 / – |
-| 3 | 5 | 70 s | 30 / 50 / 20 |
-| 4 | 7 | 60 s | 10 / 35 / 55 |
+| 1 | 6 | 30 s | 100 / – / – |
+| 2 | 8 | 30 s | 65 / 35 / – |
+| 3 | 10 | 28 s | 30 / 50 / 20 |
+| 4 | 14 | 26 s | 10 / 35 / 55 |
 
 Example line (Forensic): 🧰 Field Kit → 🧫 Petri Bench → ⚗️ Chem Bench → 🏥 Forensic Lab.
 
