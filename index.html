@@ -107,13 +107,68 @@ button:disabled{opacity:.4}
 .spot{background:radial-gradient(circle at 50% 30%,#fff3 0,transparent 55%)}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--plum);border:2px solid #000;
   border-radius:12px;padding:8px 14px;z-index:120;font-size:14px;box-shadow:3px 3px 0 #000;max-width:90%;text-align:center}
+
+/* ---------- menu / intro / coach ---------- */
+.screen{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  padding:20px;overflow:hidden;background:radial-gradient(ellipse at 50% 15%,#3a2350 0%,#160d20 55%,#0a0610 100%)}
+.moon{position:absolute;top:6%;right:14%;width:78px;height:78px;border-radius:50%;background:#efe6d2;box-shadow:0 0 40px #efe6d288,inset -12px -6px 0 #cfc3a8;
+  animation:boil .8s steps(1) infinite}
+.bat{position:absolute;font-size:26px;animation:flap 1.2s steps(2) infinite}
+.b1{top:10%;left:12%}.b2{top:22%;left:62%;animation-delay:.3s;font-size:20px}.b3{top:16%;left:36%;animation-delay:.6s;font-size:16px}
+@keyframes flap{0%{transform:translate(0,0) rotate(-6deg)}50%{transform:translate(14px,-8px) rotate(6deg)}100%{transform:translate(0,0) rotate(-6deg)}}
+.manor{position:absolute;bottom:0;left:0;width:100%;height:auto;max-height:38%;opacity:.95}
+.logo{font-size:clamp(44px,15vw,64px);line-height:.95;margin:6px 0 0;text-align:center;font-weight:400;letter-spacing:.04em;transform:rotate(-2.5deg);
+  text-shadow:3px 3px 0 var(--blood),6px 6px 0 #000;z-index:2}
+.logo span{display:block;transform:translateX(12px) rotate(1.5deg)}
+.tag{color:var(--dim);font-size:14px;text-align:center;margin:4px 0 14px;z-index:2;max-width:280px}
+.menubtns{display:flex;flex-direction:column;gap:10px;width:min(260px,80%);z-index:2;margin-bottom:20%}
+.menubtns button{font-size:17px;padding:11px 12px}
+.menubtns button:nth-child(odd){transform:rotate(-.8deg)}
+.menubtns button:nth-child(even){transform:rotate(.8deg)}
+.menubtns button.primary{background:var(--blood)}
+.ver{position:absolute;bottom:8px;font-size:11px;color:#6d6079;z-index:2}
+.scene .portrait{font-size:84px;line-height:1;animation:boil .5s steps(1) infinite}
+.scene .who{letter-spacing:.15em;font-size:12px;color:var(--amber);margin:2px 0 6px;text-transform:uppercase}
+.scene p{min-height:88px;font-size:17px}
+.dots{margin:6px 0 10px;font-size:10px;letter-spacing:3px;color:var(--dim)}
+.rules{text-align:left;font-size:14px;line-height:1.45;padding-left:20px;margin:8px 0}
+.rules li{margin-bottom:6px}
+.casecard{background:var(--plum);border:2px solid #000;border-radius:10px 3px 10px 3px;padding:10px;margin:8px 0;text-align:left;box-shadow:3px 3px 0 #000;cursor:pointer}
+.casecard.locked{opacity:.45;cursor:default}
+.casecard b{display:block;font-size:16px}.casecard small{color:var(--dim)}
+#coach{background:var(--amber);color:#1a1020;border:2px solid #000;border-radius:10px 3px 10px 3px;padding:8px 10px;font-size:14px;line-height:1.35;box-shadow:3px 3px 0 #000;margin-bottom:8px}
+#coach a{display:inline-block;margin-left:6px;font-size:12px;text-decoration:underline;cursor:pointer;opacity:.7}
+.item.gen.glow{animation:glow 1s ease-in-out infinite,boil .5s steps(1) infinite}
+@keyframes glow{50%{box-shadow:0 0 14px 3px var(--amber),inset 0 0 8px #f2b84b88}}
+body.reduce *{animation:none!important;transition:none!important}
+.menuline{display:flex;gap:6px;align-items:center}
 </style>
 </head>
 <body>
-<div id="app">
-  <h1>The Late Mr. Grimsby<small>A MERGER MYSTERY &middot; CASE 1 &middot; PROTOTYPE v2</small></h1>
+<div id="menu" class="screen">
+  <div class="moon"></div><span class="bat b1">🦇</span><span class="bat b2">🦇</span><span class="bat b3">🦇</span>
+  <svg class="manor" viewBox="0 0 400 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <path d="M0 200V150l40-8 8-50 14 8 6-60 12 56 16-6 4 58 30-4 6-40 14 6 10-70 14 72 34-10 6 46 20-8 8-38 12 4 14-46 10 48 26-6 8 34 34-8 12 60H0z" fill="#07030b"/>
+    <g fill="#f2b84b"><rect x="58" y="112" width="8" height="12" transform="skewX(-6)"/><rect x="150" y="130" width="8" height="12"/><rect x="205" y="98" width="8" height="14" transform="skewX(6)"/><rect x="290" y="128" width="8" height="12"/></g>
+    <path d="M0 200q60-30 120-8t130-6 150 10v4H0z" fill="#0a0610"/>
+  </svg>
+  <h1 class="logo">Merger<span>Mystery</span></h1>
+  <p class="tag">Merge the evidence. Pin the strings. Catch the killer.</p>
+  <div class="menubtns">
+    <button id="mContinue" class="primary">▶ Continue</button>
+    <button id="mNew">🕯️ New Case</button>
+    <button id="mCases">📁 Case Files</button>
+    <button id="mHow">❓ How to Play</button>
+    <button id="mSettings">⚙️ Settings</button>
+  </div>
+  <div class="ver">PROTOTYPE · CASE 1 OF ∞</div>
+</div>
+
+<div id="app" class="hidden">
+  <h1>The Late Mr. Grimsby<small>A MERGER MYSTERY &middot; CASE 1</small></h1>
 
   <div class="hud">
+    <button id="menuBtn" style="padding:4px 10px" aria-label="Menu">☰</button>
     <div class="pill" id="energy"></div>
     <div class="pill" id="composure"></div>
   </div>
@@ -125,8 +180,9 @@ button:disabled{opacity:.4}
 
   <!-- Evidence table -->
   <section id="viewTable">
+    <div id="coach" class="hidden"></div>
     <div class="desk"><div id="grid"></div></div>
-    <p class="note" id="tip">Tap a <b style="color:var(--amber)">generator</b> to spawn evidence. Drag two matching items together to merge them — drag two matching generators to <b style="color:var(--amber)">upgrade</b> them. (Tap-tap works too; long-press selects a generator.)</p>
+    <p class="note" id="tip">Tap-tap also works to merge; long-press selects a generator.</p>
     <div class="geninfo" id="genInfo"></div>
     <div class="tray" id="tray"></div>
     <div class="legend" id="legend"></div>
@@ -216,9 +272,9 @@ function fresh(){
   const g = Array(CELLS).fill(null);
   // start with two Lv1 generators per chain: merge them to reach Lv2, and so on
   Object.keys(CHAINS).forEach(c=>{ for(let n=0;n<2;n++){ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]=mkGen(c); } });
-  return { grid:g, clues:[], links:{}, composure:START_COMPOSURE, solved:false };
+  return { grid:g, clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
 }
-function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.grid) return s; }catch(e){} return fresh(); }
+function load(){ try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.grid){ if(s.tut===undefined) s.tut=99; if(s.started===undefined) s.started=true; return s; } }catch(e){} return fresh(); }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){} }
 S = load();
 
@@ -256,7 +312,7 @@ function renderTable(){
       const e = document.createElement("div");
       if(it.g){
         const [emo,name] = genInfo(it.c,it.l), cool = it.ch<=0;
-        e.className = "item gen "+CHAINS[it.c].css+(cool?" cool":"")+(it.l===GEN_MAX?" lvmax":"")+(lastPop===i?" pop":"");
+        e.className = "item gen "+CHAINS[it.c].css+(S.tut===0&&!cool?" glow":"")+(cool?" cool":"")+(it.l===GEN_MAX?" lvmax":"")+(lastPop===i?" pop":"");
         e.title = name;
         e.innerHTML = emo+'<span class="lv">Lv'+it.l+'</span>'+
           (cool ? '<span class="cdtxt" data-cd="'+it.cd+'"></span>'
@@ -277,7 +333,7 @@ function renderTable(){
   const tr = $("tray"); tr.innerHTML = "";
   const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.style.flex=1; bin.innerHTML="<b>🪦</b>File away (drag or select, then tap)";
   tr.appendChild(bin);
-  renderGenInfo();
+  renderGenInfo(); renderCoach();
   // legend
   $("legend").innerHTML = Object.keys(CHAINS).map(k=>{
     const c=CHAINS[k];
@@ -325,6 +381,7 @@ function spawnFrom(i){
   const empty = emptyCells();
   if(!empty.length){ toast("Table's full — merge or file something away."); return renderTable(); }
   const j = empty[Math.floor(Math.random()*empty.length)];
+  tut(0);
   gen.ch--; if(gen.ch<=0) gen.cd = Date.now()+GEN_LEVELS[gen.l-1].cd*1000;
   S.grid[j] = { c:gen.c, t:pickTier(gen.c,gen.l) };
   lastPop = j; commit();
@@ -352,13 +409,13 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
   if(!b){ S.grid[to]=a; S.grid[from]=null; if(a.g) focus=to; return commit(); }
   if(a.g && b.g && a.c===b.c && a.l===b.l){            // upgrade a generator
     if(a.l>=GEN_MAX){ toast("Already at max level."); return renderTable(); }
-    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to;
+    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2);
     const [emo,name]=genInfo(a.c,a.l+1), before=spawnTable(a.c,a.l).length, after=spawnTable(a.c,a.l+1).length;
     toast("⬆ "+emo+" "+name+" (Lv"+(a.l+1)+")! "+GEN_LEVELS[a.l].charges+" charges"+(after>before?" · now spawns "+item(a.c,after)[1]:""));
     return commit();
   }
   if(!a.g && !b.g && a.c===b.c && a.t===b.t){          // merge evidence
-    S.grid[from]=null;
+    S.grid[from]=null; tut(1);
     if(a.t < maxTier(a.c)){ b.t++; lastPop=to; commit(); }
     else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
     return;
@@ -427,7 +484,7 @@ function closeOverlay(){ $("overlay").classList.add("hidden"); }
 function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
-  S.clues.push(id);
+  S.clues.push(id); tut(3);
   const lead = grantLead(); commit();
   overlay('<div class="big">'+c.emoji+'</div><h2>Clue Discovered!</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
@@ -512,8 +569,8 @@ $("confront").onclick=()=>{
     '<p>The <b>belladonna</b> came from your conservatory. Your <b>alibi</b> collapsed at ten to nine. And your <b>lavender glove</b> was caught on the study latch.</p>'+
     '<p><i>Lady Vesper laughs, and the candles gutter out…</i></p>'+
     '<p style="color:var(--dim);font-size:13px">CASE 1 CLOSED — prototype complete.<br>Next episode: <b>“The Widow’s Undertaker”</b></p>'+
-    '<button id="ok">Close</button>');
-  $("ok").onclick=closeOverlay;
+    '<button id="ok">Close</button> <button id="toMenu">Main menu</button>');
+  $("ok").onclick=closeOverlay; $("toMenu").onclick=showMenu;
 };
 
 /* =========================================================
@@ -530,15 +587,94 @@ function showTab(t){
   $("tabTable").classList.toggle("on",!b); $("tabBoard").classList.toggle("on",b);
   if(b) renderBoard(); else renderTable();
 }
+/* ---------- tutorial coach ---------- */
+const TUT=[
+  "① Tap a glowing generator to spawn evidence.",
+  "② Drag two matching items together to merge them into a higher tier.",
+  "③ Drag two identical generators together to upgrade them: more charges, better items.",
+  "④ Reach the final tier of a chain to reveal a clue, then pin it on the Red-String Board."];
+function tut(n){ if(S.tut<=n) S.tut=n+1; }
+function renderCoach(){
+  const c=$("coach");
+  if(S.tut>=TUT.length||S.solved){ c.classList.add("hidden"); return; }
+  c.classList.remove("hidden"); c.innerHTML=TUT[S.tut]+'<a id="skipTut">skip tips</a>';
+}
+$("coach").addEventListener("click",e=>{ if(e.target.id==="skipTut"){ S.tut=99; commit(); } });
+
+/* ---------- settings ---------- */
+const CFG_KEY="merger-mystery-settings"; let CFG={reduce:false};
+try{ Object.assign(CFG,JSON.parse(localStorage.getItem(CFG_KEY))||{}); }catch(e){}
+function applyCfg(){ document.body.classList.toggle("reduce",!!CFG.reduce); try{ localStorage.setItem(CFG_KEY,JSON.stringify(CFG)); }catch(e){} }
+
+/* ---------- screens ---------- */
+function showMenu(){
+  closeOverlay(); $("app").classList.add("hidden"); $("menu").classList.remove("hidden");
+  const c=$("mContinue"); c.classList.toggle("hidden",!S.started);
+  c.textContent = S.solved ? "⭐ Case 1 — solved" : "▶ Continue Case 1";
+}
+function showGame(){ $("menu").classList.add("hidden"); $("app").classList.remove("hidden"); showTab("table"); }
+function newCase(){
+  if(S.started && !S.solved && !confirm("Abandon your current case and start over?")) return;
+  S=fresh(); selected=null; armedClue=null; focus=null; save(); commit(); playIntro(0);
+}
+const INTRO=[
+  {who:"Grimsby Hollow · 11:04 p.m.",face:"🏚️",text:"The manor leans a little further to the left tonight, as if it were listening."},
+  {who:"Inspector Bloat",face:"🥚",text:"He died of… surprise? Look at that face! And the tea isn't even cold."},
+  {who:"You, the Apprentice",face:"🧒",text:"Nobody dies of surprise, Inspector. Somebody arranged it. Bring me the teapot."},
+  {who:"Poe-tential",face:"🐦‍⬛",text:"Caw. Red string for truth, grey string for gossip. Three suspects, one killer."},
+  {who:"Inspector Bloat",face:"🥚",text:"The widow, the physician and the butler. All upstairs, all lying in their own special ways."},
+  {who:"You, the Apprentice",face:"🧒",text:"Then we start small. Everything begins with a single speck of dust."}];
+function playIntro(i){
+  const l=INTRO[i];
+  overlay('<div class="scene"><div class="portrait">'+l.face+'</div><div class="who">'+l.who+'</div><p>“'+l.text+'”</p>'+
+    '<div class="dots">'+INTRO.map((_,n)=>n===i?"●":"○").join(" ")+'</div>'+
+    '<button id="iNext">'+(i<INTRO.length-1?"Next ▸":"Begin investigation ▸")+'</button> <button id="iSkip" style="font-size:12px;opacity:.7">Skip</button></div>');
+  const end=()=>{ S.started=true; save(); closeOverlay(); showGame(); };
+  $("iNext").onclick=()=> i<INTRO.length-1 ? playIntro(i+1) : end();
+  $("iSkip").onclick=end;
+}
+$("mContinue").onclick=showGame;
+$("mNew").onclick=newCase;
+$("menuBtn").onclick=showMenu;
+$("mHow").onclick=()=>{
+  overlay('<h2>How to Play</h2><ol class="rules">'+
+    '<li><b>Generators</b> (gold borders) spawn evidence when tapped. Each has limited charges, then a cooldown.</li>'+
+    '<li><b>Merge</b> two matching items to raise their tier. Reach the top tier of a chain to <b>reveal a clue</b>.</li>'+
+    '<li><b>Merge two identical generators</b> to upgrade them: more charges, better items.</li>'+
+    '<li>On the <b>Red-String Board</b>, tap a clue, then the suspect it points to. Good strings pull taut; bad ones snap and cost Composure.</li>'+
+    '<li>Beware <b>red herrings</b>. Not every clue is evidence.</li>'+
+    '<li>Link every damning clue to the culprit, then <b>confront</b> them.</li></ol><button id="ok">Got it</button>');
+  $("ok").onclick=closeOverlay;
+};
+$("mCases").onclick=()=>{
+  const st = S.solved ? "⭐ Solved" : S.started ? "In progress" : "New";
+  overlay('<h2>Case Files</h2>'+
+    '<div class="casecard" id="c1"><b>1 · The Late Mr. Grimsby</b><small>'+st+' — a widow, a doctor, a butler and a cold cup of tea</small></div>'+
+    '<div class="casecard locked"><b>🔒 2 · The Widow’s Undertaker</b><small>Coming soon</small></div>'+
+    '<div class="casecard locked"><b>🔒 3 · ???</b><small>Coming soon</small></div><button id="ok">Close</button>');
+  $("ok").onclick=closeOverlay;
+  $("c1").onclick=()=>{ closeOverlay(); S.started ? showGame() : newCase(); };
+};
+$("mSettings").onclick=()=>{
+  const draw=()=>{
+    overlay('<h2>Settings</h2>'+
+      '<p><button id="sMotion">Reduce motion: '+(CFG.reduce?"ON":"OFF")+'</button></p>'+
+      '<p><button id="sErase" style="background:#3a1020">Erase saved progress</button></p><p><button id="ok">Back</button></p>');
+    $("sMotion").onclick=()=>{ CFG.reduce=!CFG.reduce; applyCfg(); draw(); };
+    $("sErase").onclick=()=>{ if(confirm("Erase all saved progress?")){ S=fresh(); selected=null; focus=null; save(); commit(); closeOverlay(); showMenu(); toast("Save erased."); } };
+    $("ok").onclick=closeOverlay;
+  }; draw();
+};
+
 $("tabTable").onclick=()=>showTab("table");
 $("tabBoard").onclick=()=>showTab("board");
-$("reset").onclick=()=>{ if(confirm("Restart the case from scratch?")){ S=fresh(); selected=null; armedClue=null; commit(); showTab("table"); } };
+$("reset").onclick=()=>{ if(confirm("Restart the case from scratch?")){ S=fresh(); S.started=true; S.tut=0; selected=null; armedClue=null; focus=null; commit(); showTab("table"); } };
 window.addEventListener("resize",drawStrings);
 setInterval(()=>{                                   // cooldown ticker: full re-render only when a generator refills
   if(drag && drag.moved) return;
   if(tickGens()) renderTable(); else tickCooldownText();
 },500);
-commit();
+applyCfg(); commit(); showMenu();
 </script>
 </body>
 </html>
