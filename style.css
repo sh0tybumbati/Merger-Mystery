@@ -32,7 +32,7 @@ button:disabled{opacity:.4}
 .hidden{display:none!important}
 
 /* ---------- Evidence table: a felt game tray with a brass rim ---------- */
-.desk{background:var(--teal);border:3px solid var(--line);border-radius:18px;padding:10px;box-shadow:inset 0 0 0 4px var(--mustard),0 5px 0 var(--line)}
+.desk{background:var(--felt-day,var(--teal));border:3px solid var(--line);border-radius:18px;padding:10px;box-shadow:inset 0 0 0 4px var(--mustard),0 5px 0 var(--line)}
 #grid{display:grid;grid-template-columns:repeat(6,1fr);gap:3px;touch-action:none;padding:2px}
 .cell{aspect-ratio:1;background:var(--cream);border-radius:8px;display:flex;align-items:center;justify-content:center;position:relative;
   font-size:clamp(22px,8vw,34px);border:2px solid var(--cell-line)}
@@ -217,3 +217,9 @@ body.reduce *{animation:none!important;transition:none!important}
 .raven{height:132px;width:auto;display:block;margin:0 auto}
 .rv-eye{transform-box:fill-box;transform-origin:center;animation:blink 4.2s infinite}
 @keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+body.night .desk{background:var(--felt-night,var(--teal))}
+.room{border:2.5px solid var(--line);border-radius:12px;overflow:hidden;margin:0 2px 8px;background:var(--cream);line-height:0}
+.room svg{width:100%;height:auto;display:block}
+.room svg *{stroke:var(--line);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.room svg .ns{stroke:none}

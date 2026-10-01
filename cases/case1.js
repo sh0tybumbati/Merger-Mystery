@@ -36,9 +36,9 @@
       text:"The planchette spelled CRANE. (Ghosts, sadly, are not admissible evidence.)" }
   },
   scenes: {
-    study: { name:"The Study", icon:"📚", chains:["poison","fibre"], need:[], seed:{poison:2,fibre:2}, art:"study" },
-    hall:  { name:"Servants' Hall", icon:"🧹", chains:["words"], need:["belladonna","glove"], seed:{words:3}, art:"hall" },
-    seance:{ name:"Séance Parlour", icon:"🕯️", chains:["seance"], need:["belladonna"], seed:{seance:2}, art:"seance" }
+    study: { name:"The Study", icon:"📚", chains:["poison","fibre"], need:[], seed:{poison:2,fibre:2}, art:"study", felt:["#4fa3a5","#2d7f88"] },
+    hall:  { name:"Servants' Hall", icon:"🧹", chains:["words"], need:["belladonna","glove"], seed:{words:3}, art:"hall", felt:["#d98b6a","#8a4d3a"] },
+    seance:{ name:"Séance Parlour", icon:"🕯️", chains:["seance"], need:["belladonna"], seed:{seance:2}, art:"seance", felt:["#8f78c8","#5a4690"] }
   },
   intro: [
     { who:"Grimsby Hollow · 11:04 p.m.", face:"🏚️", text:"The manor leans a little further to the left tonight, as if it were listening." },

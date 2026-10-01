@@ -40,10 +40,10 @@
       text:"Block capitals on Plum & Sons stationery accuse Miss Plum. Anonymous letters are not evidence, but they are certainly rude." }
   },
   scenes: {
-    embalming:{ name:"Embalming Room", icon:"🧪", chains:["embalm","floor"], need:[], seed:{embalm:2,floor:2}, art:"embalming" },
-    counting: { name:"Counting House", icon:"🧮", chains:["ledger"], need:["fluid"], seed:{ledger:3}, art:"counting" },
-    garage:   { name:"Hearse Garage", icon:"🚚", chains:["log"], need:["fluid","books"], seed:{log:3}, art:"garage" },
-    parlour:  { name:"Mourning Parlour", icon:"🌹", chains:["letters"], need:["fluid"], seed:{letters:2}, art:"parlour" }
+    embalming:{ name:"Embalming Room", icon:"🧪", chains:["embalm","floor"], need:[], seed:{embalm:2,floor:2}, art:"embalming", felt:["#6fb5a0","#2f7566"] },
+    counting: { name:"Counting House", icon:"🧮", chains:["ledger"], need:["fluid"], seed:{ledger:3}, art:"counting", felt:["#c9a35a","#7a5f25"] },
+    garage:   { name:"Hearse Garage", icon:"🚚", chains:["log"], need:["fluid","books"], seed:{log:3}, art:"garage", felt:["#7d93b5","#3f5278"] },
+    parlour:  { name:"Mourning Parlour", icon:"🌹", chains:["letters"], need:["fluid"], seed:{letters:2}, art:"parlour", felt:["#e58f92","#a45c78"] }
   },
   intro: [
     { who:"Plum & Sons, Funeral Directors · 9:12 a.m.", face:"⚰️", text:"Lady Vesper's parting hint led here: a parlour so tidy that even the dust has been alphabetised." },

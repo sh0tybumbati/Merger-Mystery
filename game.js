@@ -1,7 +1,8 @@
 /* =========================================================
    DATA  — everything content-related lives here (data-driven!)
    ========================================================= */
-const COLS = 6, ROWS = 7, CELLS = COLS * ROWS;
+const COLS = 6, MIN_ROWS = 5, MAX_ROWS = 8;           // the table grows by a row for every clue found
+const rowsFor = n => Math.min(MAX_ROWS, MIN_ROWS + n);
 const START_COMPOSURE = 3;
 
 /* ---- the active case: content comes from cases/*.js (window.CASES) ---- */
@@ -38,8 +39,8 @@ const defaultProfile=()=>({ cur:"case1", solved:{}, ins:5, mag:2, daily:{last:""
 function loadProfile(){ try{ const p=JSON.parse(localStorage.getItem(PROFILE_KEY)); if(p&&p.cur) return Object.assign(defaultProfile(),p); }catch(e){} return defaultProfile(); }
 function saveProfile(){ try{ localStorage.setItem(PROFILE_KEY,JSON.stringify(P)); }catch(e){} }
 let P = loadProfile(), S;
-function seedBoard(id){
-  const g = Array(CELLS).fill(null);
+function seedBoard(id,rows){
+  const CELLS=COLS*(rows||MIN_ROWS), g = Array(CELLS).fill(null);
   Object.entries(SCENES[id].seed).forEach(([c,n])=>{ for(let k=0;k<n;k++){ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]=mkGen(c); } });
   return g;
 }
@@ -256,6 +257,9 @@ function spawnFrom(i){
 
 function renderScenes(){
   const bar=$("scenes"); bar.innerHTML="";
+  const sc0=SCENES[S.scene], desk=$("desk"), felt=sc0.felt||["#4fa3a5","#2d7f88"];
+  desk.style.setProperty("--felt-day",felt[0]); desk.style.setProperty("--felt-night",felt[1]);
+  $("room").innerHTML=sceneArt(sc0.art);
   SCENE_IDS.forEach(id=>{
     const sc=SCENES[id], open=S.unlocked.includes(id), b=document.createElement("button");
     b.className=(id===S.scene?"on":"")+(open?"":" locked"); b.dataset.scene=id;
@@ -270,11 +274,16 @@ $("scenes").addEventListener("click",e=>{
   switchScene(id);
 });
 function switchScene(id){ S.scene=id; S.grid=S.boards[id]; selected=null; focus=null; drag=null; commit(); }
+function growBoards(){                                  // every board gains rows as the case progresses
+  const want=COLS*rowsFor(S.clues.length); let grew=false;
+  Object.values(S.boards).forEach(b=>{ while(b.length<want){ b.push(null); grew=true; } });
+  return grew;
+}
 function checkUnlocks(){
   const opened=[];
   SCENE_IDS.forEach(id=>{
     if(!S.unlocked.includes(id) && SCENES[id].need.every(c=>S.clues.includes(c))){
-      S.unlocked.push(id); S.boards[id]=seedBoard(id); opened.push(id);
+      S.unlocked.push(id); S.boards[id]=seedBoard(id,rowsFor(S.clues.length)); opened.push(id);
     }
   });
   return opened;
@@ -396,10 +405,11 @@ function closeOverlay(){ $("overlay").classList.add("hidden"); }
 function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
-  S.clues.push(id); tut(3); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
+  S.clues.push(id); tut(3); const grew=growBoards(); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
   const lead = grantLead(), opened = checkUnlocks(); commit();
   overlay('<div class="big">'+ic(c.emoji)+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
+    (grew?'<p style="color:var(--moss)">🧩 <b>The evidence table grew by a row.</b></p>':'')+
     opened.map(id=>'<p style="color:var(--moss)">🔓 <b>New location unlocked:</b> '+SCENES[id].icon+' '+SCENES[id].name+'</p>').join('')+
     '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>'+
     (opened.length?'<p><button id="goScene">'+SCENES[opened[0]].icon+' Go to '+SCENES[opened[0]].name+'</button></p>':''));
