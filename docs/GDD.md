@@ -91,6 +91,7 @@ Cross-chain: a Vial merged with a Reagent skips a tier. Sources level up to spaw
 - **Motion:** crisp and deliberate (pop, bob, drift), never wobbly. Confetti-style bursts on merges and clues.
 - **Type:** Playfair Display for titles, Jost for UI; readable body copy first.
 - **Mobile UX:** key actions in the bottom third; targets 48px or larger; one-hand drag with a tap-tap alternative; silhouettes readable at small size; reduce-motion toggle; audio muted by default until enabled.
+- **Night variant:** a dark "Dollhouse After Dark" theme (Day / Night / Auto) built from the same tokens; the hotel lights up its windows.
 - **Audio:** a jaunty harpsichord waltz and short plucked effects, synthesised in-browser.
 - **Production shortcuts:** procedural SVG characters and buildings; a shared puppet rig with swappable headgear; per-case palette swaps.
 

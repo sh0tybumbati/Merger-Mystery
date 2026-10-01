@@ -26,6 +26,17 @@ The prototype implements this with **no image or audio files**: characters and t
 
 Each chain owns one colour so tiers and origins read at a glance: forensics mint, witnesses sky, fibres pink, séance lilac. Each future case gets its own accent scheme and location.
 
+## Night variant ("Dollhouse After Dark")
+
+The same world after dark, switchable any time: **Settings → Theme** (Day / Night / Auto, which follows the phone's dark-mode setting) or the ☀️/🌙 button on the title screen. The choice is remembered.
+
+- Same shapes, same flat hard-shadow language; only the tokens change (`body.night` in the CSS), so every new screen gets both themes for free.
+- Page and panels go deep aubergine; outlines go near-black (`--line`) while text goes warm cream (`--ink`). Text and outline are separate tokens for this reason.
+- Chain tiles stay colour-coded but deeper: mint → forest, sky → denim, pink → rose, lilac → violet, so emoji still pop.
+- The title screen becomes a starry night with a moon, and the hotel is relit: darker walls, glowing mustard windows.
+- Characters get a thin cream rim light so dark coats still read on dark panels.
+- Red remains reserved for string, pins and danger.
+
 ## Shape and layout language
 
 - **Symmetry.** Centre-aligned titles, mirrored layouts, no random tilts. Nothing wobbles.
