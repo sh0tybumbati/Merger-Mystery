@@ -60,6 +60,13 @@ Characters come from one flat **puppet rig** (`puppet(kind)`): big round head, d
 | The Apprentice | Pink coat, dark bob |
 | Poe-tential | Raven (emoji placeholder) |
 
+## Icons, the raven and rooms
+
+- **Item icons** are flat vector props drawn in a 48×48 box with the shared ink outline, keyed by the emoji used in the case data (`icons.js`). A missing icon falls back to the emoji, so new content never breaks.
+- **Generators** are composed, not drawn one by one: four level bases (crate → cabinet → counter → little building) tinted with the chain's colour and wearing the chain's first item as a glyph badge. A new chain gets four generators for free.
+- **Poe-tential** the raven is a flat, bow-tied bird that blinks every few seconds.
+- **Scene banners** are symmetrical 400×64 dollhouse rooms (study, servants' hall, séance parlour, embalming room, counting house, hearse garage, mourning parlour), and each scene has its own felt colour (day and night).
+
 ## Motion
 
 - Crisp and deliberate, like a dolly shot: **pop** on spawn/merge, a gentle **bob** on portraits, slow cloud drift. No wobble or jitter.

@@ -7,7 +7,7 @@ title: Merger Mystery — Game Design Document
 
 *Working title. Merge-puzzle × episodic murder mystery in a pastel dollhouse world. Mobile-first PWA.*
 
-[Play the prototype](../) · [Case 1 mystery graph](case-1-the-late-mr-grimsby.html) · [Art & audio style guide](art-style-guide.html)
+[Play the prototype](../) · [Case 1](case-1-the-late-mr-grimsby.html) · [Case 2](case-2-the-widows-undertaker.html) · [Art & audio style guide](art-style-guide.html)
 
 ## 1. Pillars
 
@@ -65,6 +65,15 @@ Sources are **items on the merge board**, not a menu. Each chain has its own gen
 Example line (Forensic): 🧰 Field Kit → 🧫 Petri Bench → ⚗️ Chem Bench → 🏥 Forensic Lab.
 
 In the full game, generator cooldowns replace global energy as the pacing lever, and speed-ups or extra charges become the natural monetization hook. The prototype has no global energy.
+
+## 2c. Tools, requests and retention
+
+- **Inspiration (💡)** is a soft currency earned from clues (+1), requests, the Daily Casebook and solving a case. Spend 1 on **Poe-tential's hint**, which highlights the best merge (preferring one that makes a clue), or points to a generator with charges, or explains why nothing can merge.
+- **Magnifier (🔍)** is a consumable tool. Select it, then tap a tile to permanently reveal the next step of its chain, or, at the top of a chain, the clue it makes. A "you already know" result costs nothing.
+- **Inspector requests.** Each room has a standing request ("Bloat needs 2× Powder Pinch"). Select a tile and tap the card, or drag a tile onto it. Rewards: Inspiration, a Magnifier, or a free Lv1 generator.
+- **Daily Casebook.** A 7-day streak of rewards; the modal opens on launch when a day is waiting.
+- **Growing table.** Every board starts at 6×5 and gains a row per clue found (up to 6×8), so early play is tight and later rooms have space.
+- **Economy note.** Hints and Magnifiers never solve the case; they only speed processing, in line with the fairness principles below. They are the natural place to attach monetization later.
 
 ## 3. Merge Chains
 
@@ -140,8 +149,12 @@ Cross-chain: a Vial merged with a Reagent skips a tier. Sources level up to spaw
 ## 7. Roadmap
 
 1. **Digital prototype** of the merge → reveal → pin loop. ✅
-2. **Contradiction merges** ✅. Witness statements come in two clashing variants; only a clashing pair merges into the clue.
-3. **Scene progression and showdown** ✅. Study, Servants' Hall and Séance Parlour unlock as clues are found; a three-claim showdown ends the case.
-4. **Art and audio pass** ✅ (procedural), then re-themed from gothic to **Dollhouse Cluedo**: pastel palette, hotel facade, flat puppet rig, confetti bursts, harpsichord waltz. See the [style guide](art-style-guide.html).
-5. **Playtest** the pacing, then decide monetization numbers.
-6. **PixiJS port** with real art, once the design has settled.
+2. **Contradiction merges** ✅
+3. **Scene progression and showdown** ✅
+4. **Art and audio pass** ✅ then re-themed to **Dollhouse Cluedo** (plus a Night variant). See the [style guide](art-style-guide.html).
+5. **Install and offline play** ✅ (manifest, service worker, icons).
+6. **Data-driven cases** ✅ and **Case 2** ✅. A case is one file in `cases/`.
+7. **Custom vector icons, raven and scene banners** ✅
+8. **Hints, Magnifier, requests, Daily Casebook, growing table** ✅
+9. **Launch prep (next):** analytics funnels, balance pass from real playtests, accessibility review, store/web listing.
+10. **PixiJS port** with commissioned art, once the design has settled.

@@ -334,7 +334,7 @@ const dailyText=r=>[r.ins?"💡 "+r.ins+" Inspiration":"",r.mag?"🔍 "+r.mag+" 
 function showDaily(){
   const ready=dailyReady(), nextStreak=ready?(P.daily.last===dayStr(-1)?P.daily.streak+1:1):P.daily.streak, idx=(Math.max(nextStreak,1)-1)%DAILY.length;
   overlay('<h2>Daily Casebook</h2><p style="color:var(--dim);font-size:13px">Come back every day. Streaks earn bigger rewards.</p>'+
-    '<div class="daily">'+DAILY.map((r,n)=>'<div class="dcell'+(n===idx?' now':'')+(!ready&&n<=idx?' got':'')+'"><b>Day '+(n+1)+'</b><span>'+dailyText(r).replace(/ /g,'&nbsp;').replace('+',' +')+'</span></div>').join('')+'</div>'+
+    '<div class="daily">'+DAILY.map((r,n)=>'<div class="dcell'+(n===idx?' now':'')+(!ready&&n<=idx?' got':'')+'"><b>Day '+(n+1)+'</b><span>'+dailyText(r)+'</span></div>').join('')+'</div>'+
     (ready?'<p><button id="dClaim" class="primary">🎁 Claim: '+dailyText(DAILY[idx])+'</button></p>':'<p style="color:var(--moss)">✔ Claimed today. See you tomorrow, Detective!</p>')+'<p><button id="ok">Close</button></p>');
   $("ok").onclick=closeOverlay;
   const c=$("dClaim"); if(c) c.onclick=()=>{
@@ -781,6 +781,8 @@ $("mHow").onclick=()=>{
     '<li>Prefer tapping? Tap a tile, then tap the one to merge with. Long-press a generator to select it.</li>'+
     '<li>On the <b>Red-String Board</b>, tap a clue, then the suspect it points to. Good strings pull taut; bad ones snap and cost Composure.</li>'+
     '<li>Beware <b>red herrings</b>. Not every clue is evidence.</li>'+
+    '<li><b>Tools:</b> 🔍 the Magnifier shows what a tile becomes. Poe-tential the raven spends 💡 Inspiration to point out a merge. Earn both from clues, requests and the Daily Casebook.</li>'+
+    '<li>The Inspector\'s <b>request</b> card pays rewards: select a matching tile, then tap the card (or drag the tile onto it).</li>'+
     '<li>Link every damning clue to the culprit, then <b>confront</b> them.</li></ol><button id="ok">Got it</button>');
   $("ok").onclick=closeOverlay;
 };

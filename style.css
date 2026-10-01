@@ -245,7 +245,7 @@ body.night .desk{background:var(--felt-night,var(--teal))}
 .rw{display:flex;align-items:center;gap:2px;font-size:14px}
 .rw i{display:inline-block;width:22px;height:22px}
 .daily{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0;text-align:center}
-.dcell{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:5px 2px;font-size:10px;line-height:1.2}
+.dcell{min-width:0;background:var(--card);border:2px solid var(--line);border-radius:10px;padding:5px 2px;font-size:10px;line-height:1.2}
 .dcell b{display:block;font-size:11px;color:var(--rose)}
 .dcell.now{outline:3px solid var(--mustard);outline-offset:1px}
 .dcell.got{opacity:.5}
