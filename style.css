@@ -223,3 +223,30 @@ body.night .desk{background:var(--felt-night,var(--teal))}
 .room svg{width:100%;height:auto;display:block}
 .room svg *{stroke:var(--line);stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
 .room svg .ns{stroke:none}
+
+/* ---------- tools, requests, daily ---------- */
+.tray{align-items:stretch}
+.tray .bin{flex:1.1}
+.tool{flex:1;position:relative;padding:5px 4px 6px;font-size:11px;line-height:1.1;display:flex;flex-direction:column;align-items:center;gap:1px}
+.tool .ti{display:block;width:30px;height:30px}
+.tool .ti svg{width:100%;height:100%}
+.tool .cnt{position:absolute;top:-6px;right:-4px;min-width:19px;height:19px;line-height:15px;border-radius:10px;background:var(--inv-bg);color:var(--inv-fg);border:2px solid var(--cream);font-size:10px;font-weight:700;padding:0 3px}
+.cell.hint{outline:3px dashed var(--moss);outline-offset:-3px;animation:hintp .9s ease-in-out infinite}
+@keyframes hintp{50%{outline-color:var(--blood)}}
+.req{display:flex;align-items:center;gap:8px;background:var(--cream);border:2px solid var(--line);border-radius:14px;padding:6px 10px;margin-bottom:8px;box-shadow:0 3px 0 var(--line);cursor:pointer}
+.rq-face svg{height:46px;width:auto;display:block}
+.rq-main{flex:1;min-width:0}
+.rq-t{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--rose);font-weight:700}
+.rq-tiles{display:flex;align-items:center;gap:8px;margin-top:3px}
+.rq-tiles .ct{width:34px;height:34px;font-size:16px;border-radius:8px}
+.rq-x{font-weight:700;font-size:15px}
+.rq-p{color:var(--amber);font-size:11px;letter-spacing:1px}
+.rq-rw{font-size:12px;font-weight:700;text-align:center;line-height:1.1;color:var(--amber)}
+.rw{display:flex;align-items:center;gap:2px;font-size:14px}
+.rw i{display:inline-block;width:22px;height:22px}
+.daily{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0;text-align:center}
+.dcell{background:var(--card);border:2px solid var(--line);border-radius:10px;padding:5px 2px;font-size:10px;line-height:1.2}
+.dcell b{display:block;font-size:11px;color:var(--rose)}
+.dcell.now{outline:3px solid var(--mustard);outline-offset:1px}
+.dcell.got{opacity:.5}
+#mDaily .dot{margin-left:8px}

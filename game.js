@@ -46,10 +46,10 @@ function seedBoard(id,rows){
 }
 function fresh(){
   const first=SCENE_IDS[0], boards = { [first]: seedBoard(first) };
-  return { seen:{}, seenGen:{}, boards, scene:first, unlocked:[first], grid:boards[first], clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
+  return { seen:{}, seenGen:{}, peek:{}, req:{}, boards, scene:first, unlocked:[first], grid:boards[first], clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
 }
 function load(){
-  try{ const s=JSON.parse(localStorage.getItem(SAVE_PREFIX+CASE.id)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; s.seen=s.seen||{}; s.seenGen=s.seenGen||{}; return s; } }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(SAVE_PREFIX+CASE.id)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; s.seen=s.seen||{}; s.seenGen=s.seenGen||{}; s.peek=s.peek||{}; s.req=s.req||{}; return s; } }catch(e){}
   return fresh();
 }
 function save(){ try{ localStorage.setItem(SAVE_PREFIX+CASE.id, JSON.stringify(S,(k,v)=>k==="grid"?undefined:v)); }catch(e){} }
@@ -137,7 +137,7 @@ function fx(i,glyphs){
 /* =========================================================
    EVIDENCE TABLE
    ========================================================= */
-let selected = null, lastPop = -1, focus = null;
+let selected = null, lastPop = -1, focus = null, hintCells = [], hintT = null, tool = null;
 
 function renderTable(){
   tickGens();
@@ -147,7 +147,7 @@ function renderTable(){
   const g = $("grid"); g.innerHTML = "";
   S.grid.forEach((it,i)=>{
     const d = document.createElement("div");
-    d.className = "cell" + (((i%COLS)+Math.floor(i/COLS))%2?" alt":"") + (selected===i?" sel":"");
+    d.className = "cell" + (((i%COLS)+Math.floor(i/COLS))%2?" alt":"") + (selected===i?" sel":"") + (hintCells.includes(i)?" hint":"");
     d.dataset.i = i;
     if(it){
       const e = document.createElement("div");
@@ -170,10 +170,15 @@ function renderTable(){
   });
   lastPop = -1;
   tickCooldownText();
-  // tray (just the bin now; sources live on the board)
+  // tray: file away, magnifier, Poe-tential's hint
   const tr = $("tray"); tr.innerHTML = "";
-  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.style.flex=1; bin.innerHTML="<b>🪦</b>File away (drag or select, then tap)";
+  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.innerHTML="<b>🪦</b>File away";
   tr.appendChild(bin);
+  const mag=document.createElement("button"); mag.id="toolMag"; mag.className="tool"+(tool==="mag"?" on":"");
+  mag.innerHTML='<span class="ti">'+ic("🔍")+'</span>Magnifier<span class="cnt">'+P.mag+'</span>'; tr.appendChild(mag);
+  const hint=document.createElement("button"); hint.id="toolHint"; hint.className="tool";
+  hint.innerHTML='<span class="ti">'+raven()+'</span>Hint<span class="cnt">'+P.ins+'</span>'; tr.appendChild(hint);
+  renderRequest();
   renderInfo(); renderCoach(); renderScenes();
 
 }
@@ -206,7 +211,7 @@ function itemChainHTML(it){
     } else out.push(S.seen[seenKey(it.c,t)] ? tile(emo,css,t,cur,name) : unknown(t,cur));
   });
   const cl=CLUES[ch.clue];
-  out.push(S.clues.includes(ch.clue) ? tile(cl.emoji,"clue","🔎",false,cl.title) : unknown("🔎",false));
+  out.push(S.clues.includes(ch.clue)||S.peek[ch.clue] ? tile(cl.emoji,"clue","🔎",false,cl.title) : unknown("🔎",false));
   return '<div class="chain">'+out.join(ARROW)+'</div>';
 }
 function genChainHTML(it){
@@ -232,6 +237,112 @@ function renderInfo(){
     el.innerHTML='<b>'+ic(emo,'inl')+' '+name+'</b>'+itemChainHTML(it);
   }
 }
+
+/* ---------- tools: Poe-tential's hint (Inspiration) and the Magnifier ---------- */
+function setHint(cells,ms){
+  clearTimeout(hintT); hintCells=cells; renderTable();
+  hintT=setTimeout(()=>{ hintCells=[]; renderTable(); },ms||5000);
+}
+function poeHint(){
+  if(P.ins<=0) return toast("No Inspiration left. Find clues, finish requests or claim the Daily Casebook.");
+  const g=S.grid; let best=null;
+  const consider=(i,j,score)=>{ if(!best||score>best.score) best={i,j,score}; };
+  for(let i=0;i<g.length;i++) for(let j=i+1;j<g.length;j++){
+    const a=g[i], b=g[j]; if(!a||!b||a.c!==b.c) continue;
+    if(a.g&&b.g){ if(a.l===b.l&&a.l<GEN_MAX) consider(i,j,100+a.l); continue; }
+    if(a.g||b.g||a.t!==b.t) continue;
+    const pr=CHAINS[a.c].pair;
+    if(pr&&a.t===pr.tier){ if(a.v!==b.v) consider(i,j,300); continue; }       // a clashing pair: it makes a clue!
+    consider(i,j, a.t===maxTier(a.c)?300:a.t*10);
+  }
+  let msg;
+  if(best){ P.ins--; saveProfile(); msg="Caw! Merge these two."+(best.score>=300?" That one makes a clue!":""); setHint([best.i,best.j]); }
+  else {
+    const gens=g.map((x,i)=>x&&x.g&&x.ch>0?i:-1).filter(i=>i>=0);
+    const pairTier=g.some(x=>x&&!x.g&&CHAINS[x.c].pair&&x.t===CHAINS[x.c].pair.tier);
+    if(gens.length){ P.ins--; saveProfile(); msg="Nothing to merge. Tap a generator for more evidence."; setHint([gens[0]]); }
+    else if(pairTier){ P.ins--; saveProfile(); msg="Statements that agree won't merge. Hunt for the one that clashes."; renderTable(); }
+    else if(S.clues.some(id=>!S.links[id])){ P.ins--; saveProfile(); msg="You have unpinned clues! Try the String Board."; renderTable(); }
+    else { msg="Everything is recharging. Have a look at another room, or wait a moment."; }
+  }
+  toast("🐦‍⬛ "+msg);
+}
+function useMagnifier(i){
+  const it=S.grid[i]; if(!it){ renderTable(); return; }
+  let msg=null;
+  if(it.g){
+    if(it.l>=GEN_MAX) msg="This is already the finest it gets.";
+    else if((S.seenGen[it.c]||0)>it.l) msg="You already know what this becomes.";
+    else { S.seenGen[it.c]=it.l+1; msg="Merged with its twin, it becomes the "+genInfo(it.c,it.l+1)[1]+"."; }
+  } else {
+    const ch=CHAINS[it.c], pr=ch.pair;
+    if(it.t>=ch.tiers.length || (pr&&it.t===pr.tier)){
+      if(S.peek[ch.clue]||S.clues.includes(ch.clue)) msg="You already know what this becomes.";
+      else { S.peek[ch.clue]=1; msg="Merged, this reveals: "+CLUES[ch.clue].title+"."; }
+    } else {
+      const nt=it.t+1, k=seenKey(it.c,nt);
+      if(S.seen[k]) msg="You already know what this becomes.";
+      else { S.seen[k]=1; if(pr&&nt===pr.tier) pr.variants.forEach((_,v)=>S.seen[seenKey(it.c,nt,v)]=1); msg="Merged, this becomes: "+item(it.c,nt,pr&&nt===pr.tier?0:undefined)[1].split(":")[0]+"."; }
+    }
+  }
+  if(msg && !/already/.test(msg)){ P.mag--; saveProfile(); Sfx.play("good"); }
+  focus=i; commit(); toast("🔍 "+msg);
+}
+
+/* ---------- Inspector requests: hand over specific evidence for rewards ---------- */
+function newRequest(sceneId){
+  const chains=SCENES[sceneId].chains, c=chains[Math.floor(Math.random()*chains.length)], ch=CHAINS[c];
+  const top=ch.pair?ch.pair.tier-1:ch.tiers.length-1;
+  const t=top>=2?2+Math.floor(Math.random()*(top-1)):1, r=Math.random();
+  return { c, t, need:t===1?3:2, have:0, reward: r<.5?{k:"ins",n:2}:r<.8?{k:"mag",n:1}:{k:"gen"} };
+}
+const rewardHTML=r=>r.k==="ins"?'<span class="rw">💡+'+r.n+'</span>':r.k==="mag"?'<span class="rw"><i>'+ic("🔍")+'</i>+'+r.n+'</span>':'<span class="rw"><i>'+ic("🎁")+'</i>Lv1</span>';
+function renderRequest(){
+  const el=$("reqCard"); if(!el) return;
+  if(S.solved){ el.classList.add("hidden"); return; }
+  const rq=S.req[S.scene]||(S.req[S.scene]=newRequest(S.scene)), ch=CHAINS[rq.c];
+  el.classList.remove("hidden");
+  el.innerHTML='<div class="rq-face">'+puppet("bloat")+'</div><div class="rq-main"><div class="rq-t">Inspector Bloat needs</div><div class="rq-tiles">'+
+    tile(item(rq.c,rq.t)[0],ch.css,rq.t,false,item(rq.c,rq.t)[1])+'<span class="rq-x">× '+rq.need+'</span><span class="rq-p">'+
+    Array.from({length:rq.need},(_,n)=>n<rq.have?"●":"○").join(" ")+'</span></div></div><div class="rq-rw">'+rewardHTML(rq.reward)+'</div>';
+}
+function applyReward(r){
+  if(r.k==="ins"){ P.ins+=r.n; saveProfile(); return "+"+r.n+" Inspiration"; }
+  if(r.k==="mag"){ P.mag+=r.n; saveProfile(); return "+"+r.n+" Magnifier"; }
+  const open=S.grid.map((v,i)=>v?-1:i).filter(i=>i>=0), chains=SCENES[S.scene].chains;
+  if(open.length){ S.grid[open[Math.floor(Math.random()*open.length)]]=mkGen(chains[Math.floor(Math.random()*chains.length)]); return "a free Lv1 generator"; }
+  P.ins+=2; saveProfile(); return "+2 Inspiration (the table was full)";
+}
+function deliver(i){
+  selected=null;
+  const it=S.grid[i], rq=S.req[S.scene];
+  if(!it||it.g||!rq){ toast("Hand over a piece of evidence."); return renderTable(); }
+  if(it.c!==rq.c||it.t!==rq.t){ toast("The Inspector wants a "+item(rq.c,rq.t)[1]+"."); return renderTable(); }
+  S.grid[i]=null; rq.have++; Sfx.play("good"); fx(i,["⭐","✨"]);
+  if(rq.have>=rq.need){ const txt=applyReward(rq.reward); S.req[S.scene]=newRequest(S.scene); Sfx.play("upgrade"); toast("📋 Request complete! "+txt); }
+  commit();
+}
+$("reqCard").addEventListener("click",()=>{
+  if(typeof selected==="number") deliver(selected); else toast("Select a tile, then tap the request. Or drag a tile onto it.");
+});
+
+/* ---------- daily casebook ---------- */
+const dayStr=(off=0)=>{ const d=new Date(); d.setDate(d.getDate()+off); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const DAILY=[{ins:2},{mag:1},{ins:3},{mag:1,ins:1},{ins:3},{mag:2},{ins:5,mag:2}];
+const dailyReady=()=>P.daily.last!==dayStr();
+const dailyText=r=>[r.ins?"💡 "+r.ins+" Inspiration":"",r.mag?"🔍 "+r.mag+" Magnifier"+(r.mag>1?"s":""):""].filter(Boolean).join(" + ");
+function showDaily(){
+  const ready=dailyReady(), nextStreak=ready?(P.daily.last===dayStr(-1)?P.daily.streak+1:1):P.daily.streak, idx=(Math.max(nextStreak,1)-1)%DAILY.length;
+  overlay('<h2>Daily Casebook</h2><p style="color:var(--dim);font-size:13px">Come back every day. Streaks earn bigger rewards.</p>'+
+    '<div class="daily">'+DAILY.map((r,n)=>'<div class="dcell'+(n===idx?' now':'')+(!ready&&n<=idx?' got':'')+'"><b>Day '+(n+1)+'</b><span>'+dailyText(r).replace(/ /g,'&nbsp;').replace('+',' +')+'</span></div>').join('')+'</div>'+
+    (ready?'<p><button id="dClaim" class="primary">🎁 Claim: '+dailyText(DAILY[idx])+'</button></p>':'<p style="color:var(--moss)">✔ Claimed today. See you tomorrow, Detective!</p>')+'<p><button id="ok">Close</button></p>');
+  $("ok").onclick=closeOverlay;
+  const c=$("dClaim"); if(c) c.onclick=()=>{
+    const r=DAILY[idx]; P.ins+=r.ins||0; P.mag+=r.mag||0; P.daily={last:dayStr(),streak:nextStreak}; saveProfile(); Sfx.play("upgrade"); burstAt(innerWidth/2,innerHeight/2,["🎁","⭐","✨"]);
+    refreshDailyDot(); renderTable(); showDaily();
+  };
+}
+function refreshDailyDot(){ const b=$("mDaily"); if(b) b.innerHTML="🎁 Daily Casebook"+(dailyReady()?'<span class="dot">!</span>':''); }
 
 function pickTier(c,l){
   const t=spawnTable(c,l), tot=t.reduce((a,x)=>a+x[1],0); let r=Math.random()*tot;
@@ -273,7 +384,7 @@ $("scenes").addEventListener("click",e=>{
   if(!S.unlocked.includes(id)) return toast("Locked. Find: "+needText(id));
   switchScene(id);
 });
-function switchScene(id){ S.scene=id; S.grid=S.boards[id]; selected=null; focus=null; drag=null; commit(); }
+function switchScene(id){ tool=null; hintCells=[]; S.scene=id; S.grid=S.boards[id]; selected=null; focus=null; drag=null; commit(); }
 function growBoards(){                                  // every board gains rows as the case progresses
   const want=COLS*rowsFor(S.clues.length); let grew=false;
   Object.values(S.boards).forEach(b=>{ while(b.length<want){ b.push(null); grew=true; } });
@@ -371,16 +482,17 @@ window.addEventListener("pointerup", e=>{
   if(!drag) return;
   const d = drag; endDrag();
   const el = document.elementFromPoint(e.clientX,e.clientY);
-  const cell = el?.closest(".cell"), bin = el?.closest("#bin");
+  const cell = el?.closest(".cell"), bin = el?.closest("#bin"), reqEl = el?.closest("#reqCard");
   if(d.moved && cell && +cell.dataset.i===d.i){ d.moved=false; }   // dropped where it started: treat as a tap
   if(d.moved){
     selected=null;
-    if(bin) act(d.i,"bin"); else if(cell) act(d.i,+cell.dataset.i); else renderTable();
+    if(bin) act(d.i,"bin"); else if(reqEl) deliver(d.i); else if(cell) act(d.i,+cell.dataset.i); else renderTable();
     return;
   }
   if(d.long) return;
   // tap
   const i = d.i, it = S.grid[i];
+  if(tool==="mag"){ tool=null; if(it) useMagnifier(i); else { toast("Magnifier put away."); renderTable(); } return; }
   if(selected===null){
     if(it && it.g){ if(it.ch>0) spawnFrom(i); else { focus=i; selected=i; renderTable(); } }   // tap = spawn
     else if(it){ selected=i; renderTable(); }
@@ -390,6 +502,12 @@ window.addEventListener("pointerup", e=>{
   else { const from=selected; selected=null; act(from,i); }
 });
 $("tray").addEventListener("click", e=>{
+  if(e.target.closest("#toolMag")){
+    if(tool==="mag"){ tool=null; return renderTable(); }
+    if(P.mag<=0) return toast("No magnifiers left. Requests and the Daily Casebook give more.");
+    tool="mag"; selected=null; renderTable(); return toast("🔍 Tap a tile to see what it becomes.");
+  }
+  if(e.target.closest("#toolHint")) return poeHint();
   if(e.target.closest("#bin")){
     if(typeof selected==="number"){ const f=selected; selected=null; act(f,"bin"); }
     else toast("Select an item first, or drag it here.");
@@ -405,10 +523,11 @@ function closeOverlay(){ $("overlay").classList.add("hidden"); }
 function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
-  S.clues.push(id); tut(3); const grew=growBoards(); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
+  S.clues.push(id); tut(3); const grew=growBoards(); P.ins++; saveProfile(); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
   const lead = grantLead(), opened = checkUnlocks(); commit();
   overlay('<div class="big">'+ic(c.emoji)+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
+    '<p style="font-size:13px;color:var(--amber)">💡 +1 Inspiration</p>'+
     (grew?'<p style="color:var(--moss)">🧩 <b>The evidence table grew by a row.</b></p>':'')+
     opened.map(id=>'<p style="color:var(--moss)">🔓 <b>New location unlocked:</b> '+SCENES[id].icon+' '+SCENES[id].name+'</p>').join('')+
     '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>'+
@@ -517,10 +636,10 @@ function startShowdown(){
   draw();
 }
 function finale(){
-  const F=CASE.finale; S.solved=true; P.solved[CASE.id]=true; saveProfile(); commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["🎉","⭐","✨"]);
+  const F=CASE.finale, first=!S.solved; if(first){ P.ins+=2; P.mag+=1; } S.solved=true; P.solved[CASE.id]=true; saveProfile(); commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["🎉","⭐","✨"]);
   overlay('<div class="spot"><div class="portrait">'+faceHTML(SUSPECTS[CULPRIT].face)+'</div></div><h2>'+F.title+'</h2>'+
     '<p>'+F.text+'</p><p><i>'+F.coda+'</i></p>'+
-    '<p style="color:var(--dim);font-size:13px">CASE '+CASE.num+' CLOSED<br>'+F.teaser+'</p>'+
+    '<p style="color:var(--dim);font-size:13px">CASE '+CASE.num+' CLOSED<br>'+F.teaser+'</p>'+(first?'<p style="color:var(--amber);font-size:13px">🎁 Bonus: +2 Inspiration, +1 Magnifier</p>':'')+
     '<button id="ok">Close</button> <button id="toMenu">Main menu</button>');
   $("ok").onclick=closeOverlay; $("toMenu").onclick=showMenu;
 }
@@ -632,6 +751,7 @@ function showMenu(){
   closeOverlay(); $("app").classList.add("hidden"); $("menu").classList.remove("hidden");
   const c=$("mContinue"); c.classList.toggle("hidden",!S.started);
   c.textContent = S.solved ? "⭐ Case "+CASE.num+" — solved" : "▶ Continue Case "+CASE.num;
+  refreshDailyDot();
   $("verLine").textContent="PROTOTYPE · "+CASE_LIST().length+" CASES";
 }
 function showGame(){ $("menu").classList.add("hidden"); $("app").classList.remove("hidden"); renderHud(); showTab("table"); }
@@ -652,6 +772,7 @@ $("themeBtn").onclick=()=>{ CFG.theme=isNight()?"day":"night"; applyCfg(); };
 $("mContinue").onclick=showGame;
 $("mNew").onclick=newCase;
 $("menuBtn").onclick=showMenu;
+$("mDaily").onclick=showDaily;
 $("mHow").onclick=()=>{
   overlay('<h2>How to Play</h2><ol class="rules">'+
     '<li><b>Generators</b> (gold borders) spawn evidence when tapped. Each has limited charges, then a cooldown.</li>'+
@@ -717,4 +838,4 @@ window.addEventListener("appinstalled",()=>{ installEvt=null; toast("Installed! 
 const isStandalone=()=>window.matchMedia("(display-mode: standalone)").matches || navigator.standalone===true;
 if("serviceWorker" in navigator && /^https?:$/.test(location.protocol)) window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
 
-applyCfg(); commit(); showMenu();
+applyCfg(); commit(); showMenu(); refreshDailyDot(); if(dailyReady()) setTimeout(showDaily,500);

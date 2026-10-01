@@ -52,6 +52,10 @@ ICON["✉️"]=`<rect x="5" y="11" width="38" height="27" rx="3" fill="${C}"/><p
 ICON["📨"]=`<path d="M9 5h30v22H9z" fill="${W}"/><path d="M14 11h20M14 16h20M14 21h12" fill="none" stroke-width="1.8"/><path d="M5 22l19 13 19-13v17a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z" fill="${C}"/><path d="M5 22l19 13 19-13" fill="none"/><path class="ns" d="M30 17l3 3m0-3l-3 3" stroke="${R}" stroke-width="2.4"/>`;
 ICON["🚗"]=`<path d="M5 31v-7l4-9c1-3 3-4 6-4h20c3 0 5 1 6 4l4 9v7z" fill="${D}"/><path d="M12 15l-3 8h30l-3-8z" fill="${SK}"/><path d="M5 31v4h38v-4" fill="${ST}"/><circle cx="14" cy="36" r="5" fill="${C}"/><circle cx="34" cy="36" r="5" fill="${C}"/><rect class="ns" x="41" y="26" width="4" height="3" fill="${Y}"/>`;
 
+// ---------- tools & rewards ----------
+ICON["🔍"]=`<circle cx="20" cy="20" r="13" fill="#eaf6f7"/><path d="M13 16a8 8 0 0 1 6-5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 30l12 12" fill="none" stroke-width="6" stroke="${BR}"/><path d="M30 30l12 12" fill="none" stroke-width="2.4"/>`;
+ICON["🎁"]=`<rect x="6" y="20" width="36" height="22" rx="2" fill="${P}"/><rect x="4" y="13" width="40" height="9" rx="2" fill="${RS}"/><rect x="21" y="13" width="6" height="29" fill="${Y}"/><path d="M24 13c-8-10-14 0-6 0zM24 13c8-10 14 0 6 0z" fill="${Y}"/>`;
+
 // ---------- compose ----------
 const inner=e=>ICON[e];
 const svg=(body,cls)=>`<svg class="ic${cls?' '+cls:''}" viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
