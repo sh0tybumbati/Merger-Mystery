@@ -4,40 +4,14 @@
 const COLS = 6, ROWS = 7, CELLS = COLS * ROWS;
 const START_COMPOSURE = 3;
 
-const CHAINS = {
-  poison: { name:"Forensic Lab", src:"🧰", css:"chain-poison",
-    gen:[["🧰","Field Kit"],["🧫","Petri Bench"],["⚗️","Chem Bench"],["🏥","Forensic Lab"]],
-    tiers:[["🌫️","Dust Mote"],["🧂","Powder Pinch"],["🧪","Vial of Residue"],["🔬","Lab Slide"]], clue:"belladonna" },
-  words:  { name:"Witness Desk", src:"🗄️", css:"chain-words",
-    gen:[["📁","Case Folder"],["🗄️","Filing Cabinet"],["🗃️","Card Index"],["🏛️","Town Archive"]],
-    tiers:[["👂","Whisper"],["💬","Rumour"],["📜","Signed Statement"]], clue:"alibi",
-    // contradiction tier: two variants; only a *clashing* pair merges (into the clue)
-    pair:{ tier:3, variants:[["🛌","Lady Vesper's Statement: “In bed by nine.”"],["🚪","Maid's Statement: “Conservatory door, ten to nine.”"]] } },
-  fibre:  { name:"Trace Kit", src:"🧵", css:"chain-fibre",
-    gen:[["🧺","Sewing Basket"],["🪡","Tailor's Kit"],["🧥","Tailor's Dummy"],["🏬","Tailor Shop"]],
-    tiers:[["🧵","Loose Thread"],["🪢","Fibre Tuft"],["🧣","Silk Scrap"]], clue:"glove" },
-  seance: { name:"Séance Parlour", src:"🕯️", css:"chain-seance",
-    gen:[["🕯️","Candle Stand"],["🕸️","Dusty Table"],["🔮","Crystal Ball"],["🏚️","Haunted Parlour"]],
-    tiers:[["🕯️","Candle Stub"],["🫗","Wax Pool"],["🔮","Spirit Board"]], clue:"ghost" }
-};
+/* ---- the active case: content comes from cases/*.js (window.CASES) ---- */
+let CASE, CHAINS, SUSPECTS, CLUES, SCENES, SCENE_IDS, CULPRIT, NEED, SHOWDOWN, INTRO;
+function setCase(id){
+  CASE=CASES[id]; CHAINS=CASE.chains; SUSPECTS=CASE.suspects; CLUES=CASE.clues; SCENES=CASE.scenes; SCENE_IDS=Object.keys(SCENES);
+  CULPRIT=CASE.culprit; NEED=CASE.need; SHOWDOWN=CASE.showdown; INTRO=CASE.intro;
+}
+const CASE_LIST = () => Object.values(CASES).sort((a,b)=>a.num-b.num);
 
-const SUSPECTS = {
-  vesper:{ name:"Lady Vesper", face:"puppet:vesper", bio:"The widow. Prizes rare blooms in her private conservatory." },
-  morrow:{ name:"Dr. Morrow", face:"puppet:morrow", bio:"The physician. Was seen at his club all evening." },
-  crane: { name:"Mr. Crane", face:"puppet:crane", bio:"The butler. Allergic to every flower; never enters a greenhouse." }
-};
-const CULPRIT = "vesper";
-
-const CLUES = {
-  belladonna:{ title:"Toxin: Belladonna", emoji:"☠️", who:"vesper",
-    text:"The slide shows belladonna, a rare bloom. Only a garden that grows it could have supplied it." },
-  alibi:{ title:"Alibi Broken", emoji:"⏰", who:"vesper", kind:"contradiction",
-    text:"Two statements clash: Lady Vesper claimed she was in bed at nine, yet the maid heard the conservatory door at ten to." },
-  glove:{ title:"Lavender Glove", emoji:"🧤", who:"vesper",
-    text:"A scrap of lavender silk on the study latch, torn from a left-hand glove. Lavender is Lady Vesper's colour." },
-  ghost:{ title:"Spirit Board: “C-R-A-N-E”", emoji:"👻", who:null,
-    text:"The planchette spelled CRANE. (Ghosts, sadly, are not admissible evidence.)" }
-};
 /* Generators: merge two of the same chain+level to level up.
    charges = spawns before cooldown; cd = seconds to refill; w = spawn weights for item tiers 1,2,3…
    (higher levels unlock higher-tier items; final tier is never spawned directly — it must be merged) */
@@ -54,36 +28,33 @@ function spawnTable(c,l){                       // -> [[tier,weight],…] capped
 }
 const mkGen = (c,l=1)=>({ g:1, c, l, ch:GEN_LEVELS[l-1].charges, cd:0 });
 const genInfo = (c,l)=>CHAINS[c].gen[l-1];
-/* Locations: each has its own board and chains; later ones unlock as clues are found */
-const SCENES = {
-  study: { name:"The Study", icon:"📚", chains:["poison","fibre"], need:[], seed:{poison:2,fibre:2} },
-  hall:  { name:"Servants' Hall", icon:"🧹", chains:["words"], need:["belladonna","glove"], seed:{words:3} },
-  seance:{ name:"Séance Parlour", icon:"🕯️", chains:["seance"], need:["belladonna"], seed:{seance:2} }
-};
-const SCENE_IDS = Object.keys(SCENES);
 function needText(id){ return SCENES[id].need.map(c=>CLUES[c].title).join(" + "); }
-const NEED = ["belladonna","alibi","glove"];   // true clues required to close the case
 
 /* =========================================================
    STATE
    ========================================================= */
-const SAVE_KEY = "merger-mystery-proto-v4";
-let S;
+const PROFILE_KEY="mm-profile-v1", SAVE_PREFIX="mm-save-v5-";
+const defaultProfile=()=>({ cur:"case1", solved:{}, ins:5, mag:2, daily:{last:"",streak:0} });
+function loadProfile(){ try{ const p=JSON.parse(localStorage.getItem(PROFILE_KEY)); if(p&&p.cur) return Object.assign(defaultProfile(),p); }catch(e){} return defaultProfile(); }
+function saveProfile(){ try{ localStorage.setItem(PROFILE_KEY,JSON.stringify(P)); }catch(e){} }
+let P = loadProfile(), S;
 function seedBoard(id){
   const g = Array(CELLS).fill(null);
   Object.entries(SCENES[id].seed).forEach(([c,n])=>{ for(let k=0;k<n;k++){ let i; do{ i=Math.floor(Math.random()*CELLS);}while(g[i]); g[i]=mkGen(c); } });
   return g;
 }
 function fresh(){
-  const boards = { study: seedBoard("study") };
-  return { seen:{}, seenGen:{}, boards, scene:"study", unlocked:["study"], grid:boards.study, clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
+  const first=SCENE_IDS[0], boards = { [first]: seedBoard(first) };
+  return { seen:{}, seenGen:{}, boards, scene:first, unlocked:[first], grid:boards[first], clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
 }
 function load(){
-  try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; s.seen=s.seen||{}; s.seenGen=s.seenGen||{}; return s; } }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(SAVE_PREFIX+CASE.id)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; s.seen=s.seen||{}; s.seenGen=s.seenGen||{}; return s; } }catch(e){}
   return fresh();
 }
-function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S,(k,v)=>k==="grid"?undefined:v)); }catch(e){} }
-S = load();
+function save(){ try{ localStorage.setItem(SAVE_PREFIX+CASE.id, JSON.stringify(S,(k,v)=>k==="grid"?undefined:v)); }catch(e){} }
+function peekSave(id){ try{ const s=JSON.parse(localStorage.getItem(SAVE_PREFIX+id)); return s?{started:!!s.started,solved:!!s.solved,clues:(s.clues||[]).length}:{}; }catch(e){ return {}; } }
+function openCase(id){ setCase(id); P.cur=id; saveProfile(); S=load(); selected=null; armedClue=null; focus=null; }
+setCase(CASES[P.cur]?P.cur:"case1"); S = load();
 
 /* ---------- generator cooldowns ---------- */
 function tickGens(){
@@ -114,7 +85,11 @@ const PUPPETS={
   morrow:    {coat:"#fbf3e4",trim:"#4fa3a5",skin:"#f3dfc9",hair:"bald", hairc:"#3a2b33",specs:1},
   crane:     {coat:"#3a2b33",trim:"#fbf3e4",skin:"#efe3d6",hair:"slick",hairc:"#2a1f26",tall:1},
   bloat:     {coat:"#f0bf4c",trim:"#d1382c",skin:"#f6e0c6",hair:"bowler",hairc:"#3a2b33",stache:1},
-  apprentice:{coat:"#f2b5b5",trim:"#4fa3a5",skin:"#f8e4d2",hair:"bob",  hairc:"#3a2b33"}
+  apprentice:{coat:"#f2b5b5",trim:"#4fa3a5",skin:"#f8e4d2",hair:"bob",  hairc:"#3a2b33"},
+  fitch:     {coat:"#7aa88f",trim:"#f0bf4c",skin:"#efe3d6",hair:"slick",hairc:"#6b4630",tall:1},
+  prunella:  {coat:"#3a2b33",trim:"#f2b5b5",skin:"#f8e4d2",hair:"bob",  hairc:"#8a5a3c"},
+  dolour:    {coat:"#4a3a55",trim:"#fbf3e4",skin:"#f3dfc9",hair:"bald", hairc:"#3a2b33",specs:1,stache:1},
+  weep:      {coat:"#5a5478",trim:"#d3c3ea",skin:"#f3e3d2",hair:"veil", hairc:"#4a3a55"}
 };
 function puppet(k){
   const P=PUPPETS[k], cy=P.tall?34:42, K="#3a2b33", st='stroke="'+K+'" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"';
@@ -140,7 +115,7 @@ function puppet(k){
     eye(38)+eye(62)+specs+'<path d="M50 '+(cy+3)+'v8" fill="none" stroke="'+K+'" stroke-width="2" stroke-linecap="round"/>'+stache+
     '<path d="M43 '+(cy+21)+'h14" fill="none" '+st+'/>'+hair+'</svg>';
 }
-const faceHTML = f => f.startsWith("puppet:") ? puppet(f.slice(7)) : f;
+const faceHTML = f => f.startsWith("puppet:") ? puppet(f.slice(7)) : f==="raven" ? (typeof raven==="function"?raven():"🐦‍⬛") : f;
 
 /* ---------- particle burst ---------- */
 function burstAt(x,y,glyphs){
@@ -435,7 +410,7 @@ function reveal(id){
 
 let armedClue=null;
 function renderBoard(){
-  const sp = $("suspects"); sp.innerHTML="";
+  const sp = $("suspects"); sp.innerHTML=""; sp.classList.toggle("four",Object.keys(SUSPECTS).length>3);
   Object.entries(SUSPECTS).forEach(([k,s],n)=>{
     const d=document.createElement("div"); d.className="card sus"+(armedClue?" armed":"")+(S.solved&&k===CULPRIT?" solved":""); d.dataset.s=k;
     d.style.setProperty("--r",[-1.5,1,-.5][n]+"deg");
@@ -454,6 +429,7 @@ function renderBoard(){
   });
   const linked = NEED.filter(id=>S.links[id]===CULPRIT).length;
   $("confront").classList.toggle("hidden", !(linked===NEED.length && !S.solved));
+  $("confront").textContent="⚖️ Confront "+SUSPECTS[CULPRIT].name;
   $("boardTip").textContent = S.solved ? "Case closed." : armedClue ? "Now tap the suspect it points to." : "Tap a clue, then tap the suspect it points to. ("+linked+"/"+NEED.length+" damning threads)";
   const n=S.clues.filter(id=>!S.links[id]).length; const b=$("badge"); b.textContent=n; b.classList.toggle("hidden",!n);
   requestAnimationFrame(drawStrings);
@@ -497,24 +473,17 @@ $("suspects").addEventListener("click", e=>{
     $("strings").insertAdjacentHTML("beforeend", stringPath(a,s,cork,"#777",3,'stroke-dasharray="6 6"'));
     s.classList.add("shake");
     S.composure--; Sfx.play("snap");
-    let msg = clue.who ? "Twang! That doesn't connect "+SUSPECTS[sid].name+" to the crime." : "Twang! Ghosts leave no fingerprints. A red herring.";
-    if(S.composure<=0){ msg+=" (Composure restored — the Inspector gives you a nudge: three clues, one culprit.)"; S.composure=START_COMPOSURE; }
+    let msg = clue.who ? "Twang! That doesn't connect "+SUSPECTS[sid].name+" to the crime." : "Twang! "+(clue.herring||"A red herring.");
+    if(S.composure<=0){ msg+=" (Composure restored — the Inspector gives you a nudge: "+NEED.length+" clues, one culprit.)"; S.composure=START_COMPOSURE; }
     toast(msg); save();
     setTimeout(()=>{ renderBoard(); renderHud(); },450);
   }
 });
-const SHOWDOWN=[
-  { claim:"I never touched the tea, darling. I couldn't lift a teapot!", answer:"glove",
-    retort:"Your lavender glove was snagged on the study latch, Lady Vesper. Left hand. The very hand that holds your teacup." },
-  { claim:"I was in bed all evening. Ask anyone!", answer:"alibi",
-    retort:"We did ask. The maid heard the conservatory door at ten to nine. Your story and hers cannot both be true." },
-  { claim:"Poison? I wouldn't know belladonna from a buttercup!", answer:"belladonna",
-    retort:"Then why is it the one rare bloom in your conservatory? Only your garden grows it." }];
 function startShowdown(){
   let step=0, msg="";
   const draw=()=>{
     const q=SHOWDOWN[step];
-    overlay('<div class="scene"><div class="portrait">'+puppet("vesper")+'</div><div class="who">Lady Vesper · '+(step+1)+' of '+SHOWDOWN.length+'</div>'+
+    overlay('<div class="scene"><div class="portrait">'+faceHTML(SUSPECTS[CULPRIT].face)+'</div><div class="who">'+SUSPECTS[CULPRIT].name+' · '+(step+1)+' of '+SHOWDOWN.length+'</div>'+
       '<div class="bubble">“'+q.claim+'”</div>'+
       '<div class="dots">🎭 '+"♥".repeat(S.composure)+"♡".repeat(START_COMPOSURE-S.composure)+'</div>'+
       '<div style="font-size:13px;color:var(--amber);min-height:34px" id="sdMsg">'+(msg||"Present the clue that proves her wrong.")+'</div>'+
@@ -526,11 +495,11 @@ function startShowdown(){
     if(id===q.answer){
       msg=""; Sfx.play("good");
       overlay('<div class="scene"><div class="portrait">'+puppet("apprentice")+'</div><div class="who">You, the Apprentice</div><div class="bubble">“'+q.retort+'”</div>'+
-        '<p><button id="sdNext">'+(step<SHOWDOWN.length-1?"Next claim ▸":"Finish her ▸")+'</button></p></div>');
+        '<p><button id="sdNext">'+(step<SHOWDOWN.length-1?"Next claim ▸":"Name the culprit ▸")+'</button></p></div>');
       $("sdNext").onclick=()=>{ step++; step<SHOWDOWN.length ? draw() : finale(); };
     } else {
       S.composure--; Sfx.play("wrong");
-      msg = id==="ghost" ? "Ghosts are not admissible evidence!" : "That doesn't answer her claim. Twang!";
+      msg = CLUES[id].who==null ? "That isn't admissible evidence!" : "That doesn't answer the claim. Twang!";
       if(S.composure<=0){ S.composure=START_COMPOSURE; msg+=" Poe-tential whispers: “Try the ‘"+CLUES[q.answer].title+"’ clue.” (Composure restored)"; }
       save(); renderHud(); draw(); document.querySelector(".modal").classList.add("shake");
     }
@@ -538,11 +507,10 @@ function startShowdown(){
   draw();
 }
 function finale(){
-  S.solved=true; commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["🎉","⭐","✨"]);
-  overlay('<div class="spot"><div class="portrait">'+puppet("vesper")+'</div></div><h2>“It was YOU, Lady Vesper!”</h2>'+
-    '<p>The <b>belladonna</b> came from your conservatory. Your <b>alibi</b> collapsed at ten to nine. And your <b>lavender glove</b> was caught on the study latch.</p>'+
-    '<p><i>Lady Vesper sighs, straightens her veil, and asks whether there will be biscuits.</i></p>'+
-    '<p style="color:var(--dim);font-size:13px">CASE 1 CLOSED — prototype complete.<br>Next episode: <b>“The Widow’s Undertaker”</b></p>'+
+  const F=CASE.finale; S.solved=true; P.solved[CASE.id]=true; saveProfile(); commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["🎉","⭐","✨"]);
+  overlay('<div class="spot"><div class="portrait">'+faceHTML(SUSPECTS[CULPRIT].face)+'</div></div><h2>'+F.title+'</h2>'+
+    '<p>'+F.text+'</p><p><i>'+F.coda+'</i></p>'+
+    '<p style="color:var(--dim);font-size:13px">CASE '+CASE.num+' CLOSED<br>'+F.teaser+'</p>'+
     '<button id="ok">Close</button> <button id="toMenu">Main menu</button>');
   $("ok").onclick=closeOverlay; $("toMenu").onclick=showMenu;
 }
@@ -552,6 +520,7 @@ $("confront").onclick=startShowdown;
    TABS / INIT
    ========================================================= */
 function renderHud(){
+  $("caseTitle").firstChild.nodeValue=CASE.title; $("caseSub").innerHTML="A MERGER MYSTERY &middot; CASE "+CASE.num;
   $("energy").innerHTML = "🔎 Clues " + S.clues.length + "/" + Object.keys(CLUES).length;
   $("composure").innerHTML = "🎭 Composure " + "♥".repeat(S.composure) + "♡".repeat(START_COMPOSURE-S.composure);
 }
@@ -652,20 +621,14 @@ document.addEventListener("click",e=>{ if(e.target.closest("button")) Sfx.play("
 function showMenu(){
   closeOverlay(); $("app").classList.add("hidden"); $("menu").classList.remove("hidden");
   const c=$("mContinue"); c.classList.toggle("hidden",!S.started);
-  c.textContent = S.solved ? "⭐ Case 1 — solved" : "▶ Continue Case 1";
+  c.textContent = S.solved ? "⭐ Case "+CASE.num+" — solved" : "▶ Continue Case "+CASE.num;
+  $("verLine").textContent="PROTOTYPE · "+CASE_LIST().length+" CASES";
 }
-function showGame(){ $("menu").classList.add("hidden"); $("app").classList.remove("hidden"); showTab("table"); }
-function newCase(){
-  if(S.started && !S.solved && !confirm("Abandon your current case and start over?")) return;
-  S=fresh(); selected=null; armedClue=null; focus=null; save(); commit(); playIntro(0);
+function showGame(){ $("menu").classList.add("hidden"); $("app").classList.remove("hidden"); renderHud(); showTab("table"); }
+function startCase(id){                 // begin (or restart) a case from scratch, with its prologue
+  openCase(id); S=fresh(); save(); commit(); playIntro(0);
 }
-const INTRO=[
-  {who:"Grimsby Hollow · 11:04 p.m.",face:"🏚️",text:"The manor leans a little further to the left tonight, as if it were listening."},
-  {who:"Inspector Bloat",face:"puppet:bloat",text:"He died of… surprise? Look at that face! And the tea isn't even cold."},
-  {who:"You, the Apprentice",face:"puppet:apprentice",text:"Nobody dies of surprise, Inspector. Somebody arranged it. Bring me the teapot."},
-  {who:"Poe-tential",face:"🐦‍⬛",text:"Caw. Red string for truth, grey string for gossip. Three suspects, one killer."},
-  {who:"Inspector Bloat",face:"puppet:bloat",text:"The widow, the physician and the butler. All upstairs, all lying in their own special ways."},
-  {who:"You, the Apprentice",face:"puppet:apprentice",text:"Then we start small. Everything begins with a single speck of dust."}];
+function newCase(){ $("mCases").click(); }
 function playIntro(i){
   const l=INTRO[i];
   overlay('<div class="scene"><div class="portrait">'+faceHTML(l.face)+'</div><div class="who">'+l.who+'</div><p>“'+l.text+'”</p>'+
@@ -691,13 +654,20 @@ $("mHow").onclick=()=>{
   $("ok").onclick=closeOverlay;
 };
 $("mCases").onclick=()=>{
-  const st = S.solved ? "⭐ Solved" : S.started ? "In progress" : "New";
-  overlay('<h2>Case Files</h2>'+
-    '<div class="casecard" id="c1"><b>1 · The Late Mr. Grimsby</b><small>'+st+' — a widow, a doctor, a butler and a cold cup of tea</small></div>'+
-    '<div class="casecard locked"><b>🔒 2 · The Widow’s Undertaker</b><small>Coming soon</small></div>'+
-    '<div class="casecard locked"><b>🔒 3 · ???</b><small>Coming soon</small></div><button id="ok">Close</button>');
+  const cards=CASE_LIST().map(c=>{
+    const st=peekSave(c.id), locked=c.unlock && !P.solved[c.unlock];
+    const tag = locked ? "🔒 Solve Case "+CASES[c.unlock].num+" first" : st.solved ? "⭐ Solved" : st.started ? "In progress · "+st.clues+" clue"+(st.clues===1?"":"s") : "New";
+    return '<div class="casecard'+(locked?' locked':'')+'" data-id="'+c.id+'"><b>'+c.num+' · '+c.title+'</b><small>'+tag+' — '+c.blurb+'</small></div>';
+  }).join('');
+  overlay('<h2>Case Files</h2>'+cards+'<div class="casecard locked"><b>🔒 3 · ???</b><small>Coming soon</small></div><button id="ok">Close</button>');
   $("ok").onclick=closeOverlay;
-  $("c1").onclick=()=>{ closeOverlay(); S.started ? showGame() : newCase(); };
+  document.querySelectorAll(".casecard[data-id]").forEach(el=>el.onclick=()=>{
+    const id=el.dataset.id, c=CASES[id];
+    if(c.unlock && !P.solved[c.unlock]) return toast("Solve Case "+CASES[c.unlock].num+" first.");
+    closeOverlay();
+    const st=peekSave(id);
+    if(st.started){ openCase(id); commit(); showGame(); } else startCase(id);
+  });
 };
 $("mSettings").onclick=()=>{
   const draw=()=>{
@@ -716,7 +686,7 @@ $("mSettings").onclick=()=>{
     $("sSfx").onclick=()=>{ CFG.sfx=!CFG.sfx; applyCfg(); draw(); };
     $("sMusic").onclick=()=>{ CFG.music=!CFG.music; applyCfg(); draw(); };
     $("sMotion").onclick=()=>{ CFG.reduce=!CFG.reduce; applyCfg(); draw(); };
-    $("sErase").onclick=()=>{ if(confirm("Erase all saved progress?")){ S=fresh(); selected=null; focus=null; save(); commit(); closeOverlay(); showMenu(); toast("Save erased."); } };
+    $("sErase").onclick=()=>{ if(confirm("Erase ALL saved progress, including solved cases?")){ Object.keys(CASES).forEach(id=>{ try{ localStorage.removeItem(SAVE_PREFIX+id); }catch(e){} }); P=defaultProfile(); saveProfile(); openCase("case1"); S=fresh(); save(); commit(); closeOverlay(); showMenu(); toast("Save erased."); } };
     $("ok").onclick=closeOverlay;
   }; draw();
 };
