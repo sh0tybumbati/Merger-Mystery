@@ -53,6 +53,7 @@ Sources are **items on the merge board**, not a menu. Each chain has its own gen
 - **Higher level = better output.** More charges per cycle, slightly faster refill, and spawn tables that unlock higher-tier items off the bat (the final tier is never spawned; it must be merged to reveal the clue).
 - **Leads.** Each clue found earns a new Lv1 generator for a chain whose clue is still missing.
 - **Protected.** Generators can't be filed away, but can be moved and swapped.
+- **Chain panel.** Selecting any tile shows its merge chain as tiles joined by `›`. Item chains reveal steps only after you've seen them on a board (unknown steps show `?`), end in the clue tile, and show the two clashing variants side by side joined by ⚡. Generators show their Lv1–Lv4 line with level badges, plus charges, refill and spawn odds.
 
 | Level | Charges | Refill | Spawn weights (tier 1 / 2 / 3) |
 |---|---|---|---|

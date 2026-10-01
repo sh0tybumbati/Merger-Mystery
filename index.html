@@ -65,15 +65,25 @@ button:disabled{opacity:.4}
 .cdtxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--ink);font-weight:700;background:var(--cool-bg);border-radius:8px}
 .geninfo{background:var(--cream);border:2px solid var(--line);border-radius:14px;padding:9px 12px;font-size:13px;line-height:1.45;box-shadow:0 3px 0 var(--line);min-height:64px}
 .geninfo b{color:var(--amber)}
-.geninfo .next{color:var(--dim);font-size:12px;margin-top:3px}
+.geninfo .stat{color:var(--dim);font-size:12px;margin-top:2px}
+.chain{display:flex;align-items:center;justify-content:center;gap:2px;margin:9px 0 4px}
+.arr{color:var(--dim);font-size:17px;font-weight:700;line-height:1}
+.arr.bolt{color:var(--blood);font-size:14px}
+.ct{position:relative;width:42px;height:42px;flex:none;border:2px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 2px 0 var(--line)}
+.ct.q{background:var(--tile);color:var(--dim);font-weight:700;font-size:20px}
+.ct.gen{background:var(--gen-bg);box-shadow:inset 0 0 0 2px var(--mustard),0 2px 0 var(--line)}
+.ct.clue{background:var(--card)}
+.ct.cur{outline:3px solid var(--blood);outline-offset:1px}
+.ct .n{position:absolute;right:-4px;bottom:-5px;min-width:15px;height:15px;line-height:12px;border-radius:8px;background:var(--inv-bg);color:var(--inv-fg);
+  border:1.5px solid var(--cream);font-size:9px;font-weight:700;text-align:center;padding:0 2px}
+.ct .lv{top:-7px;left:-3px}
 .ghost{position:fixed;pointer-events:none;z-index:50;font-size:38px;transform:translate(-50%,-60%) rotate(-5deg);filter:drop-shadow(0 6px 0 #3a2b3340)}
 .tray{display:flex;gap:6px}
 .bin{flex:1;border:2px dashed var(--line);border-radius:12px;text-align:center;font-size:12px;padding:6px 2px;color:var(--dim);background:var(--bin-bg)}
 .bin b{display:block;font-size:24px;font-weight:400}
 .bin.over,.bin.sel{border-color:var(--blood);color:var(--blood);background:var(--card)}
 .note{font-size:13px;color:var(--dim);text-align:center;margin:2px 0}
-.legend{font-size:12px;color:var(--dim);line-height:1.6}
-.legend div{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:center}
 
 /* ---------- Case board: green baize with pinned index cards and red string ---------- */
 .cork{position:relative;background:var(--mint);background-image:radial-gradient(var(--cork-dot) 2px,transparent 2.4px);background-size:16px 16px;
@@ -230,10 +240,8 @@ body.reduce *{animation:none!important;transition:none!important}
     <div class="tabs" id="scenes"></div>
     <div id="coach" class="hidden"></div>
     <div class="desk"><div id="grid"></div></div>
-    <p class="note" id="tip">Tap-tap also works to merge; long-press selects a generator.</p>
     <div class="geninfo" id="genInfo"></div>
     <div class="tray" id="tray"></div>
-    <div class="legend" id="legend"></div>
   </section>
 
   <!-- Board -->
@@ -333,10 +341,10 @@ function seedBoard(id){
 }
 function fresh(){
   const boards = { study: seedBoard("study") };
-  return { boards, scene:"study", unlocked:["study"], grid:boards.study, clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
+  return { seen:{}, seenGen:{}, boards, scene:"study", unlocked:["study"], grid:boards.study, clues:[], links:{}, composure:START_COMPOSURE, solved:false, started:false, tut:0 };
 }
 function load(){
-  try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; return s; } }catch(e){}
+  try{ const s=JSON.parse(localStorage.getItem(SAVE_KEY)); if(s&&s.boards&&s.boards[s.scene]){ s.grid=s.boards[s.scene]; s.seen=s.seen||{}; s.seenGen=s.seenGen||{}; return s; } }catch(e){}
   return fresh();
 }
 function save(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S,(k,v)=>k==="grid"?undefined:v)); }catch(e){} }
@@ -423,7 +431,8 @@ let selected = null, lastPop = -1, focus = null;
 function renderTable(){
   tickGens();
   renderHud();
-  if(focus!==null && !(S.grid[focus]&&S.grid[focus].g)) focus=null;
+  scanSeen();
+  if(focus!==null && !S.grid[focus]) focus=null;
   const g = $("grid"); g.innerHTML = "";
   S.grid.forEach((it,i)=>{
     const d = document.createElement("div");
@@ -454,14 +463,8 @@ function renderTable(){
   const tr = $("tray"); tr.innerHTML = "";
   const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.style.flex=1; bin.innerHTML="<b>🪦</b>File away (drag or select, then tap)";
   tr.appendChild(bin);
-  renderGenInfo(); renderCoach();
-  // legend
-  renderScenes();
-  $("legend").innerHTML = SCENES[S.scene].chains.map(k=>{
-    const c=CHAINS[k];
-    const row=c.tiers.map((t,i)=> c.pair && i+1===c.pair.tier ? c.pair.variants[0][0]+"⚡"+c.pair.variants[1][0] : t[0]).join(" → ");
-    return "<div>"+row+" → 🔎 <span>"+c.name+"</span></div>";
-  }).join("");
+  renderInfo(); renderCoach(); renderScenes();
+
 }
 
 function tickCooldownText(){
@@ -473,19 +476,53 @@ function tierList(c,l){
   const t=spawnTable(c,l), tot=t.reduce((a,x)=>a+x[1],0);
   return t.map(([ti,w])=>item(c,ti)[0]+" "+Math.round(100*w/tot)+"%").join(" · ");
 }
-function renderGenInfo(){
+/* ---------- discovery tracking: a tile is revealed in a chain once it has appeared on any board ---------- */
+const seenKey=(c,t,v)=>c+":"+t+(v!==undefined?":"+v:"");
+function scanSeen(){
+  Object.values(S.boards).forEach(b=>b.forEach(it=>{
+    if(!it) return;
+    if(it.g){ if((S.seenGen[it.c]||0)<it.l) S.seenGen[it.c]=it.l; }
+    else { S.seen[seenKey(it.c,it.t)]=1; if(it.v!==undefined) S.seen[seenKey(it.c,it.t,it.v)]=1; }
+  }));
+}
+const tile=(emo,cls,badge,cur,title)=>'<div class="ct '+cls+(cur?' cur':'')+'" title="'+(title||'')+'">'+emo+(badge!==''?'<span class="n">'+badge+'</span>':'')+'</div>';
+const unknown=(badge,cur)=>'<div class="ct q'+(cur?' cur':'')+'">?'+(badge!==''?'<span class="n">'+badge+'</span>':'')+'</div>';
+const ARROW='<span class="arr">›</span>';
+
+function itemChainHTML(it){
+  const ch=CHAINS[it.c], css=ch.css, out=[];
+  ch.tiers.forEach(([emo,name],i)=>{
+    const t=i+1, cur=it.t===t;
+    if(ch.pair && t===ch.pair.tier){                       // the two clashing variants sit side by side
+      const v=ch.pair.variants.map((vr,vi)=>S.seen[seenKey(it.c,t,vi)]? tile(vr[0],css,t,cur&&it.v===vi,vr[1]) : unknown(t,cur&&it.v===vi));
+      out.push(v[0]+'<span class="arr bolt">⚡</span>'+v[1]);
+    } else out.push(S.seen[seenKey(it.c,t)] ? tile(emo,css,t,cur,name) : unknown(t,cur));
+  });
+  const cl=CLUES[ch.clue];
+  out.push(S.clues.includes(ch.clue) ? tile(cl.emoji,"clue","🔎",false,cl.title) : unknown("🔎",false));
+  return '<div class="chain">'+out.join(ARROW)+'</div>';
+}
+function genChainHTML(it){
+  const out=[];
+  for(let l=1;l<=GEN_MAX;l++){
+    const known=(S.seenGen[it.c]||0)>=l, [emo,name]=genInfo(it.c,l);
+    out.push(known ? '<div class="ct gen'+(it.l===l?' cur':'')+'" title="'+name+'">'+emo+'<span class="lv">Lv'+l+'</span></div>'
+                   : '<div class="ct q'+(it.l===l?' cur':'')+'">?<span class="lv">Lv'+l+'</span></div>');
+  }
+  return '<div class="chain">'+out.join(ARROW)+'</div>';
+}
+function renderInfo(){
   const el=$("genInfo"), it = focus!==null ? S.grid[focus] : null;
-  if(!it){ el.innerHTML='<span style="color:var(--dim)">Tap a generator to see its stats. Merge two of the same level to upgrade it: more charges, higher-tier items.</span>'; return; }
-  const L=GEN_LEVELS[it.l-1], [emo,name]=genInfo(it.c,it.l);
-  let h='<b>'+emo+' '+name+'</b> · Lv '+it.l+'/'+GEN_MAX+'<br>'+
-    '⚡ '+(it.ch>0?it.ch+'/'+L.charges+' charges':'recharging…')+' · ⏳ '+L.cd+'s refill after last charge<br>'+
-    'Spawns: '+tierList(it.c,it.l);
-  if(it.l<GEN_MAX){
-    const N=GEN_LEVELS[it.l], [ne,nn]=genInfo(it.c,it.l+1);
-    const newTier = spawnTable(it.c,it.l+1).length>spawnTable(it.c,it.l).length ? ' · unlocks '+item(it.c,spawnTable(it.c,it.l+1).length)[0]+' '+item(it.c,spawnTable(it.c,it.l+1).length)[1] : '';
-    h+='<div class="next">Merge 2× Lv'+it.l+' → '+ne+' '+nn+': '+N.charges+' charges, '+N.cd+'s refill'+newTier+'</div>';
-  } else h+='<div class="next">Max level.</div>';
-  el.innerHTML=h;
+  if(!it){ el.classList.add("hidden"); return; }
+  el.classList.remove("hidden");
+  if(it.g){
+    const L=GEN_LEVELS[it.l-1], [emo,name]=genInfo(it.c,it.l);
+    el.innerHTML='<b>'+emo+' '+name+'</b> · Lv '+it.l+'/'+GEN_MAX+genChainHTML(it)+
+      '<div class="stat">⚡ '+(it.ch>0?it.ch+'/'+L.charges+' charges':'recharging')+' · ⏳ '+L.cd+'s refill · spawns '+tierList(it.c,it.l)+'</div>';
+  } else {
+    const [emo,name]=itemOf(it);
+    el.innerHTML='<b>'+emo+' '+name+'</b>'+itemChainHTML(it);
+  }
 }
 
 function pickTier(c,l){
@@ -550,12 +587,13 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
   if(from===to) return renderTable();
   const a = S.grid[from];
   if(!a) return;
+  if(focus===from && to!=="bin") focus=to;                // the info panel follows the tile you moved
   if(to==="bin"){
     if(a.g){ toast("Generators can't be filed away."); return renderTable(); }
     S.grid[from]=null; toast("Filed away."); return commit();
   }
   const b = S.grid[to];
-  if(!b){ S.grid[to]=a; S.grid[from]=null; if(a.g) focus=to; return commit(); }
+  if(!b){ S.grid[to]=a; S.grid[from]=null; if(focus===from) focus=to; return commit(); }
   if(a.g && b.g && a.c===b.c && a.l===b.l){            // upgrade a generator
     if(a.l>=GEN_MAX){ toast("Already at max level."); return renderTable(); }
     S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2); Sfx.play("upgrade"); fx(to,["⭐","🎉"]);
@@ -574,7 +612,7 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
     else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
     return;
   }
-  S.grid[from]=b; S.grid[to]=a; if(a.g) focus=to; else if(b.g) focus=from; commit();   // swap
+  S.grid[from]=b; S.grid[to]=a; if(focus===from) focus=to; else if(focus===to) focus=from; commit();   // swap
 }
 
 /* ---- pointer handling: drag OR tap-tap ---- */
@@ -596,6 +634,7 @@ $("grid").addEventListener("pointerdown", e=>{
   endDrag();                                        // never start a gesture with a stale ghost/timer around
   try{ $("grid").setPointerCapture(e.pointerId); }catch(_){}
   drag = { i, x:e.clientX, y:e.clientY, moved:false, had: !!it, long:false };
+  if(it){ focus=i; renderInfo(); }
   if(it && it.g){                                   // long-press selects a generator (for tap-tap upgrading)
     const d=drag;
     d.timer=setTimeout(()=>{ if(drag===d && !d.moved){ d.long=true; selected=i; focus=i; renderTable(); } },450);
@@ -629,7 +668,7 @@ window.addEventListener("pointerup", e=>{
   if(selected===null){
     if(it && it.g){ if(it.ch>0) spawnFrom(i); else { focus=i; selected=i; renderTable(); } }   // tap = spawn
     else if(it){ selected=i; renderTable(); }
-    else { renderTable(); }
+    else { focus=null; renderTable(); }
   }
   else if(selected===i){ selected=null; renderTable(); }
   else { const from=selected; selected=null; act(from,i); }
@@ -912,7 +951,8 @@ $("mHow").onclick=()=>{
   overlay('<h2>How to Play</h2><ol class="rules">'+
     '<li><b>Generators</b> (gold borders) spawn evidence when tapped. Each has limited charges, then a cooldown.</li>'+
     '<li><b>Merge</b> two matching items to raise their tier. Reach the top tier of a chain to <b>reveal a clue</b>.</li>'+
-    '<li><b>Merge two identical generators</b> to upgrade them: more charges, better items.</li>'+
+    '<li><b>Merge two identical generators</b> to upgrade them: more charges, better items. Tap any tile to see its merge chain (undiscovered steps show as ?).</li>'+
+    '<li>Prefer tapping? Tap a tile, then tap the one to merge with. Long-press a generator to select it.</li>'+
     '<li>On the <b>Red-String Board</b>, tap a clue, then the suspect it points to. Good strings pull taut; bad ones snap and cost Composure.</li>'+
     '<li>Beware <b>red herrings</b>. Not every clue is evidence.</li>'+
     '<li>Link every damning clue to the culprit, then <b>confront</b> them.</li></ol><button id="ok">Got it</button>');
