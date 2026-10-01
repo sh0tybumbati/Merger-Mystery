@@ -154,14 +154,14 @@ function renderTable(){
         const [emo,name] = genInfo(it.c,it.l), cool = it.ch<=0;
         e.className = "item gen "+CHAINS[it.c].css+(S.tut===0&&!cool?" glow":"")+(cool?" cool":"")+(it.l===GEN_MAX?" lvmax":"")+(lastPop===i?" pop":"");
         e.title = name;
-        e.innerHTML = emo+'<span class="lv">Lv'+it.l+'</span>'+
+        e.innerHTML = genIc(it.c,it.l)+'<span class="lv">Lv'+it.l+'</span>'+
           (cool ? '<span class="cdtxt" data-cd="'+it.cd+'"></span>'
                 : '<span class="pips">'+"●".repeat(it.ch)+"○".repeat(GEN_LEVELS[it.l-1].charges-it.ch)+'</span>');
       } else {
         const [emo,name] = itemOf(it);
         e.className = "item "+CHAINS[it.c].css + (lastPop===i?" pop":"");
         e.title = name;
-        e.innerHTML = emo + '<span class="tier">'+it.t+'</span>';
+        e.innerHTML = ic(emo) + '<span class="tier">'+it.t+'</span>';
       }
       d.appendChild(e);
     }
@@ -191,7 +191,7 @@ function scanSeen(){
     else { S.seen[seenKey(it.c,it.t)]=1; if(it.v!==undefined) S.seen[seenKey(it.c,it.t,it.v)]=1; }
   }));
 }
-const tile=(emo,cls,badge,cur,title)=>'<div class="ct '+cls+(cur?' cur':'')+'" title="'+(title||'')+'">'+emo+(badge!==''?'<span class="n">'+badge+'</span>':'')+'</div>';
+const tile=(emo,cls,badge,cur,title)=>'<div class="ct '+cls+(cur?' cur':'')+'" title="'+(title||'')+'">'+ic(emo)+(badge!==''?'<span class="n">'+badge+'</span>':'')+'</div>';
 const unknown=(badge,cur)=>'<div class="ct q'+(cur?' cur':'')+'">?'+(badge!==''?'<span class="n">'+badge+'</span>':'')+'</div>';
 const ARROW='<span class="arr">›</span>';
 
@@ -212,7 +212,7 @@ function genChainHTML(it){
   const out=[];
   for(let l=1;l<=GEN_MAX;l++){
     const known=(S.seenGen[it.c]||0)>=l, [emo,name]=genInfo(it.c,l);
-    out.push(known ? '<div class="ct gen'+(it.l===l?' cur':'')+'" title="'+name+'">'+emo+'<span class="lv">Lv'+l+'</span></div>'
+    out.push(known ? '<div class="ct gen'+(it.l===l?' cur':'')+'" title="'+name+'">'+genIc(it.c,l)+'<span class="lv">Lv'+l+'</span></div>'
                    : '<div class="ct q'+(it.l===l?' cur':'')+'">?<span class="lv">Lv'+l+'</span></div>');
   }
   return '<div class="chain">'+out.join(ARROW)+'</div>';
@@ -223,12 +223,12 @@ function renderInfo(){
   el.classList.remove("hidden");
   if(it.g){
     const L=GEN_LEVELS[it.l-1], [emo,name]=genInfo(it.c,it.l);
-    el.innerHTML='<b>'+emo+' '+name+'</b> · Lv '+it.l+'/'+GEN_MAX+genChainHTML(it)+
+    el.innerHTML='<b>'+genIc(it.c,it.l,'inl')+' '+name+'</b> · Lv '+it.l+'/'+GEN_MAX+genChainHTML(it)+
       '<div class="stat">⚡ '+(it.ch>0?it.ch+'/'+L.charges+' charges':'recharging')+' · ⏳ '+L.cd+'s refill</div>'+
       '<div class="spawns"><span>Spawns</span>'+spawnTable(it.c,it.l).map(([t])=>{ const [e,n]=item(it.c,t); return tile(e,CHAINS[it.c].css+' sm',t,false,n); }).join('')+'</div>';
   } else {
     const [emo,name]=itemOf(it);
-    el.innerHTML='<b>'+emo+' '+name+'</b>'+itemChainHTML(it);
+    el.innerHTML='<b>'+ic(emo,'inl')+' '+name+'</b>'+itemChainHTML(it);
   }
 }
 
@@ -305,7 +305,7 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
     if(a.l>=GEN_MAX){ toast("Already at max level."); return renderTable(); }
     S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2); Sfx.play("upgrade"); fx(to,["⭐","🎉"]);
     const [emo,name]=genInfo(a.c,a.l+1), before=spawnTable(a.c,a.l).length, after=spawnTable(a.c,a.l+1).length;
-    toast("⬆ "+emo+" "+name+" (Lv"+(a.l+1)+")! "+GEN_LEVELS[a.l].charges+" charges"+(after>before?" · now spawns "+item(a.c,after)[1]:""));
+    toast("⬆ "+name+" (Lv"+(a.l+1)+")! "+GEN_LEVELS[a.l].charges+" charges"+(after>before?" · now spawns "+item(a.c,after)[1]:""));
     return commit();
   }
   if(!a.g && !b.g && a.c===b.c && a.t===b.t){          // merge evidence
@@ -352,7 +352,7 @@ window.addEventListener("pointermove", e=>{
   if(!drag.moved && Math.hypot(e.clientX-drag.x,e.clientY-drag.y)>(S.grid[drag.i].g?26:12)){
     drag.moved=true; clearTimeout(drag.timer);
     const it = S.grid[drag.i];
-    ghost = document.createElement("div"); ghost.className="ghost"; ghost.textContent=it.g?genInfo(it.c,it.l)[0]:itemOf(it)[0];
+    ghost = document.createElement("div"); ghost.className="ghost"; ghost.innerHTML=it.g?genIc(it.c,it.l):ic(itemOf(it)[0]);
     document.body.appendChild(ghost);
   }
   if(ghost){ ghost.style.left=e.clientX+"px"; ghost.style.top=e.clientY+"px";
@@ -398,7 +398,7 @@ function reveal(id){
   if(S.clues.includes(id)){ toast("Already on file."); return; }
   S.clues.push(id); tut(3); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
   const lead = grantLead(), opened = checkUnlocks(); commit();
-  overlay('<div class="big">'+c.emoji+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
+  overlay('<div class="big">'+ic(c.emoji)+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
     opened.map(id=>'<p style="color:var(--moss)">🔓 <b>New location unlocked:</b> '+SCENES[id].icon+' '+SCENES[id].name+'</p>').join('')+
     '<p><button id="goPin">📌 Pin it to the board</button> <button id="stay">Keep merging</button></p>'+
@@ -423,7 +423,7 @@ function renderBoard(){
     const c=CLUES[id], d=document.createElement("div");
     d.className="card clue"+(armedClue===id?" armed":"")+(S.links[id]?" linked":""); d.dataset.c=id;
     d.style.setProperty("--r",[1,-1.2,.6,-.8][n%4]+"deg");
-    d.innerHTML='<span class="face">'+c.emoji+'</span><h4>'+c.title+'</h4>'+(c.kind==='contradiction'?'<small class="contra">⚡ CONTRADICTION</small>':'')+c.text+
+    d.innerHTML='<span class="face">'+ic(c.emoji)+'</span><h4>'+c.title+'</h4>'+(c.kind==='contradiction'?'<small class="contra">⚡ CONTRADICTION</small>':'')+c.text+
       (S.links[id]?'<small>🔗 strung to '+SUSPECTS[S.links[id]].name+'</small>':'');
     cl.appendChild(d);
   });
@@ -487,7 +487,7 @@ function startShowdown(){
       '<div class="bubble">“'+q.claim+'”</div>'+
       '<div class="dots">🎭 '+"♥".repeat(S.composure)+"♡".repeat(START_COMPOSURE-S.composure)+'</div>'+
       '<div style="font-size:13px;color:var(--amber);min-height:34px" id="sdMsg">'+(msg||"Present the clue that proves her wrong.")+'</div>'+
-      '<div class="evi">'+S.clues.map(id=>'<button data-c="'+id+'"><b>'+CLUES[id].emoji+'</b>'+CLUES[id].title+'</button>').join("")+'</div></div>');
+      '<div class="evi">'+S.clues.map(id=>'<button data-c="'+id+'"><b>'+ic(CLUES[id].emoji)+'</b>'+CLUES[id].title+'</button>').join("")+'</div></div>');
     document.querySelectorAll(".evi button").forEach(btn=>btn.onclick=()=>present(btn.dataset.c));
   };
   const present=id=>{

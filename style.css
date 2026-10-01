@@ -198,3 +198,22 @@ body.night #toast{box-shadow:0 4px 0 #0008}
 body.reduce .fx{display:none}
 body.reduce *{animation:none!important;transition:none!important}
 .menuline{display:flex;gap:6px;align-items:center}
+
+/* ---------- vector icons ---------- */
+.ic{width:100%;height:100%;display:block;overflow:visible}
+.ic *{stroke:var(--line);stroke-width:2.3;stroke-linejoin:round;stroke-linecap:round}
+.ic .ns{stroke:none}
+.item .ic{width:80%;height:80%}
+.item.gen .ic{width:92%;height:92%}
+.ct .ic{width:80%;height:80%}
+.ct.gen .ic{width:94%;height:94%}
+.ct.sm .ic{width:82%;height:82%}
+.big .ic{width:76px;height:76px;margin:0 auto}
+.card .face .ic{width:46px;height:46px;margin:0 auto 2px}
+.evi button b .ic{width:36px;height:36px;margin:0 auto}
+.ghost .ic{width:54px;height:54px}
+.ic.inl{display:inline-block;width:1.35em;height:1.35em;vertical-align:-.3em;margin-right:2px}
+.emo{font-size:.8em}
+.raven{height:132px;width:auto;display:block;margin:0 auto}
+.rv-eye{transform-box:fill-box;transform-origin:center;animation:blink 4.2s infinite}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
