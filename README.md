@@ -7,6 +7,8 @@ A pastel, dollhouse-styled (Wes Anderson × Cluedo) merge-puzzle × murder-myste
 - [Art & audio style guide](docs/art-style-guide.md)
 - [Case 1: The Late Mr. Grimsby](docs/case-1-the-late-mr-grimsby.md)
 - [Case 2: The Widow's Undertaker](docs/case-2-the-widows-undertaker.md)
+- [Case 3: Murder on the Marmalade Express](docs/case-3-murder-on-the-marmalade-express.md)
+- [Case 4: A Nasty Piece of Pâtisserie](docs/case-4-a-nasty-piece-of-patisserie.md)
 
 ## Hosting on GitHub Pages
 Settings → Pages → *Deploy from a branch* → pick this branch, folder `/ (root)`.
