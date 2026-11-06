@@ -58,6 +58,6 @@
     title: "“It was YOU, Mr. Sugarplum!”",
     text: "The <b>bitter marzipan</b>, the <b>pink icing on your cuff</b> and the <b>receipt for four stars</b> all point to the critic. Monsieur Gâteau was going to expose the bribes.",
     coda: "Mr. Sugarplum is led away. He remarks, over his shoulder, that the handcuffs are overdone.",
-    teaser: "More mysteries are on their way. The Inspector is already hungry."
+    teaser: "Next episode: <b>“Dead Calm at Gull Rock”</b>"
   }
 };
