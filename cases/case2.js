@@ -67,6 +67,6 @@
     title: "“It was YOU, Mr. Fitch!”",
     text: "The <b>embalming fluid</b>, the <b>cooked books</b>, the <b>cedar boot print</b> and the <b>hearse log</b> all lead to the junior partner. Mr. Plum had found the missing funeral fund.",
     coda: "Mr. Fitch stops humming. For the first time in years, the parlour is perfectly quiet.",
-    teaser: "Case 3 is coming soon."
+    teaser: "Next episode: <b>“Murder on the Marmalade Express”</b>"
   }
 };

@@ -90,7 +90,22 @@ const PUPPETS={
   fitch:     {coat:"#7aa88f",trim:"#f0bf4c",skin:"#efe3d6",hair:"slick",hairc:"#6b4630",tall:1},
   prunella:  {coat:"#3a2b33",trim:"#f2b5b5",skin:"#f8e4d2",hair:"bob",  hairc:"#8a5a3c"},
   dolour:    {coat:"#4a3a55",trim:"#fbf3e4",skin:"#f3dfc9",hair:"bald", hairc:"#3a2b33",specs:1,stache:1},
-  weep:      {coat:"#5a5478",trim:"#d3c3ea",skin:"#f3e3d2",hair:"veil", hairc:"#4a3a55"}
+  weep:      {coat:"#5a5478",trim:"#d3c3ea",skin:"#f3e3d2",hair:"veil", hairc:"#4a3a55"},
+  pomfrey:   {coat:"#3f5a8c",trim:"#f0bf4c",skin:"#f3dfc9",hair:"bowler",hairc:"#2a3354",stache:1},
+  brisket:   {coat:"#b5503c",trim:"#f0bf4c",skin:"#f0cfb5",hair:"slick",hairc:"#d8d4cc",stache:1},
+  zola:      {coat:"#6b3f7a",trim:"#f0bf4c",skin:"#efe0cf",hair:"veil", hairc:"#3d2a52"},
+  quill:     {coat:"#8fb7a2",trim:"#fbf3e4",skin:"#f8e4d2",hair:"bob",  hairc:"#3a2b33",specs:1},
+  sugarplum: {coat:"#f2b5b5",trim:"#3a2b33",skin:"#f6e0c6",hair:"bald", hairc:"#3a2b33",specs:1,stache:1,tall:1},
+  tarte:     {coat:"#fbf3e4",trim:"#d1382c",skin:"#f3d3b9",hair:"bowler",hairc:"#ffffff",stache:1},
+  brioche:   {coat:"#e6c796",trim:"#fbf3e4",skin:"#f8e4d2",hair:"bob",  hairc:"#c9a35a"},
+  mossop:    {coat:"#e0b33a",trim:"#3f5a8c",skin:"#e8c7a6",hair:"bowler",hairc:"#3f5a8c",stache:1},
+  gannet:    {coat:"#a9d3e0",trim:"#fbf3e4",skin:"#f8e4d2",hair:"bob",  hairc:"#7a5a3c",specs:1},
+  fogg:      {coat:"#2f4a7a",trim:"#f0bf4c",skin:"#f3dfc9",hair:"slick",hairc:"#e8e4dc",stache:1,tall:1},
+  winkle:    {coat:"#d98b6a",trim:"#fbf3e4",skin:"#f3e3d2",hair:"veil", hairc:"#fbf3e4"},
+  fennel:    {coat:"#3a2b33",trim:"#f0bf4c",skin:"#efe3d6",hair:"slick",hairc:"#2a1f26",tall:1},
+  dora:      {coat:"#e58f92",trim:"#f0bf4c",skin:"#f8e4d2",hair:"bob",  hairc:"#d1382c"},
+  crotchet:  {coat:"#4a3a55",trim:"#fbf3e4",skin:"#f3dfc9",hair:"bald", hairc:"#3a2b33",specs:1,stache:1},
+  percy:     {coat:"#7d93b5",trim:"#f0bf4c",skin:"#f8e4d2",hair:"slick",hairc:"#c9a35a"}
 };
 function puppet(k){
   const P=PUPPETS[k], cy=P.tall?34:42, K="#3a2b33", st='stroke="'+K+'" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"';
@@ -823,7 +838,7 @@ $("mCases").onclick=()=>{
     const tag = locked ? "🔒 Solve Case "+CASES[c.unlock].num+" first" : st.solved ? "⭐ Solved" : st.started ? "In progress · "+st.clues+" clue"+(st.clues===1?"":"s") : "New";
     return '<div class="casecard'+(locked?' locked':'')+'" data-id="'+c.id+'"><b>'+c.num+' · '+c.title+'</b><small>'+tag+' — '+c.blurb+'</small></div>';
   }).join('');
-  overlay('<h2>Case Files</h2>'+cards+'<div class="casecard locked"><b>🔒 3 · ???</b><small>Coming soon</small></div><button id="ok">Close</button>');
+  overlay('<h2>Case Files</h2>'+cards+'<div class="casecard locked"><b>🔒 '+(CASE_LIST().length+1)+' · ???</b><small>Coming soon</small></div><button id="ok">Close</button>');
   $("ok").onclick=closeOverlay;
   document.querySelectorAll(".casecard[data-id]").forEach(el=>el.onclick=()=>{
     const id=el.dataset.id, c=CASES[id];
