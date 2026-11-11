@@ -59,7 +59,7 @@ ICON["🎁"]=`<rect x="6" y="20" width="36" height="22" rx="2" fill="${P}"/><rec
 // ---------- compose ----------
 const inner=e=>ICON[e];
 const svg=(body,cls)=>`<svg class="ic${cls?' '+cls:''}" viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
-window.ic=(e,cls)=>ICON[e]?svg(ICON[e],cls):`<span class="emo">${e}</span>`;
+window.ic=(e,cls)=>ICON[e]?svg(ICON[e],cls):`<span class="emo" aria-hidden="true">${e}</span>`;
 
 // generators: four level bases (crate, cabinet, counter, little building), tinted by the chain colour, wearing a glyph badge
 const CHAIN_FILL={"chain-poison":"var(--mint)","chain-words":"var(--sky)","chain-fibre":"var(--pink)","chain-seance":"var(--lilac)","chain-gold":"var(--gold)","chain-steel":"var(--steel)"};

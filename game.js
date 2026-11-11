@@ -69,7 +69,8 @@ function tickGens(){
    ========================================================= */
 const $ = id => document.getElementById(id);
 let toastT;
-function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.add("hidden"),2200); }
+function announce(msg){ const r=$("sr"); if(!r) return; r.textContent=""; setTimeout(()=>{ r.textContent=msg; },30); }   // screen-reader live region
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.remove("hidden"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.add("hidden"),2200); announce(msg); }
 const item = (c,t,v) => { const ch=CHAINS[c]; return (ch.pair && t===ch.pair.tier && v!==undefined) ? ch.pair.variants[v] : ch.tiers[t-1]; };
 const itemOf = it => item(it.c,it.t,it.v);
 const mkItem = (c,t) => { const it={c,t}, pr=CHAINS[c].pair; if(pr && t===pr.tier) it.v=scarceVariant(c); return it; };
@@ -135,9 +136,9 @@ const faceHTML = f => f.startsWith("puppet:") ? puppet(f.slice(7)) : f==="raven"
 
 /* ---------- particle burst ---------- */
 function burstAt(x,y,glyphs){
-  if(CFG.reduce) return;
+  if(reduced()) return;
   for(let n=0;n<7;n++){
-    const e=document.createElement("span"); e.className="fx"; e.textContent=glyphs[n%glyphs.length];
+    const e=document.createElement("span"); e.className="fx"; e.setAttribute("aria-hidden","true"); e.textContent=glyphs[n%glyphs.length];
     e.style.left=x+"px"; e.style.top=y+"px";
     const a=Math.random()*Math.PI*2, r=30+Math.random()*50;
     e.style.setProperty("--dx",Math.cos(a)*r+"px"); e.style.setProperty("--dy",(Math.sin(a)*r-20)+"px"); e.style.setProperty("--r",(Math.random()*120-60)+"deg");
@@ -154,7 +155,20 @@ function fx(i,glyphs){
    ========================================================= */
 let selected = null, lastPop = -1, focus = null, hintCells = [], hintT = null, tool = null;
 
+let kbIdx=0;
+function cellLabel(i){
+  const it=S.grid[i], pos="Row "+(Math.floor(i/COLS)+1)+", column "+(i%COLS+1)+": ";
+  let t;
+  if(!it) t="empty";
+  else if(it.g){ const nm=genInfo(it.c,it.l)[1];
+    t=nm+", generator Lv"+it.l+" of "+GEN_MAX+", "+(it.ch>0?it.ch+" of "+GEN_LEVELS[it.l-1].charges+" charges. Press Enter to spawn evidence":"recharging, about "+Math.max(0,Math.ceil((it.cd-Date.now())/1000))+" seconds left"); }
+  else t=itemOf(it)[1]+", tier "+it.t+" of "+maxTier(it.c);
+  if(selected===i) t+=", selected";
+  if(hintCells.includes(i)) t+=", hint: merge here";
+  return pos+t;
+}
 function renderTable(){
+  const af=document.activeElement, restore=(af&&af.classList&&af.classList.contains("cell"))?+af.dataset.i:null;
   tickGens();
   renderHud();
   scanSeen();
@@ -164,20 +178,22 @@ function renderTable(){
     const d = document.createElement("div");
     d.className = "cell" + (((i%COLS)+Math.floor(i/COLS))%2?" alt":"") + (selected===i?" sel":"") + (hintCells.includes(i)?" hint":"");
     d.dataset.i = i;
+    d.setAttribute("role","button"); d.tabIndex = i===kbIdx?0:-1; d.setAttribute("aria-label",cellLabel(i));
+    if(selected===i) d.setAttribute("aria-pressed","true");
     if(it){
       const e = document.createElement("div");
       if(it.g){
         const [emo,name] = genInfo(it.c,it.l), cool = it.ch<=0;
         e.className = "item gen "+CHAINS[it.c].css+(S.tut===0&&!cool?" glow":"")+(cool?" cool":"")+(it.l===GEN_MAX?" lvmax":"")+(lastPop===i?" pop":"");
         e.title = name;
-        e.innerHTML = genIc(it.c,it.l)+'<span class="lv">Lv'+it.l+'</span>'+
-          (cool ? '<span class="cdtxt" data-cd="'+it.cd+'"></span>'
-                : '<span class="pips">'+"●".repeat(it.ch)+"○".repeat(GEN_LEVELS[it.l-1].charges-it.ch)+'</span>');
+        e.innerHTML = genIc(it.c,it.l)+'<span class="lv" aria-hidden="true">Lv'+it.l+'</span>'+
+          (cool ? '<span class="cdtxt" aria-hidden="true" data-cd="'+it.cd+'"></span>'
+                : '<span class="pips" aria-hidden="true">'+"●".repeat(it.ch)+"○".repeat(GEN_LEVELS[it.l-1].charges-it.ch)+'</span>');
       } else {
         const [emo,name] = itemOf(it);
         e.className = "item "+CHAINS[it.c].css + (lastPop===i?" pop":"");
         e.title = name;
-        e.innerHTML = ic(emo) + '<span class="tier">'+it.t+'</span>';
+        e.innerHTML = ic(emo) + '<span class="tier" aria-hidden="true">'+it.t+'</span>';
       }
       d.appendChild(e);
     }
@@ -187,15 +203,16 @@ function renderTable(){
   tickCooldownText();
   // tray: file away, magnifier, Poe-tential's hint
   const tr = $("tray"); tr.innerHTML = "";
-  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.innerHTML="<b>🪦</b>File away";
+  const bin = document.createElement("div"); bin.className="bin"+(selected==="bin"?" sel":""); bin.id="bin"; bin.innerHTML="<b>🪦</b>File away"; bin.setAttribute("role","button"); bin.tabIndex=0; bin.setAttribute("aria-label","File away the selected tile");
   tr.appendChild(bin);
   const mag=document.createElement("button"); mag.id="toolMag"; mag.className="tool"+(tool==="mag"?" on":"");
-  mag.innerHTML='<span class="ti">'+ic("🔍")+'</span>Magnifier<span class="cnt">'+P.mag+'</span>'; tr.appendChild(mag);
+  mag.innerHTML='<span class="ti">'+ic("🔍")+'</span>Magnifier <span class="cnt" aria-hidden="true">'+P.mag+'</span>'; mag.setAttribute("aria-label","Magnifier "+P.mag+" left. Then choose a tile to see what it becomes"); mag.setAttribute("aria-pressed",tool==="mag"?"true":"false"); tr.appendChild(mag);
   const hint=document.createElement("button"); hint.id="toolHint"; hint.className="tool";
-  hint.innerHTML='<span class="ti">'+raven()+'</span>Hint<span class="cnt">'+P.ins+'</span>'; tr.appendChild(hint);
+  hint.innerHTML='<span class="ti">'+raven()+'</span>Hint <span class="cnt" aria-hidden="true">'+P.ins+'</span>'; hint.setAttribute("aria-label","Hint "+P.ins+" Inspiration. Poe-tential points out a merge for 1 Inspiration"); tr.appendChild(hint);
   renderRequest();
   renderInfo(); renderCoach(); renderScenes();
-
+  if(kbIdx>=S.grid.length) kbIdx=0;
+  if(restore!==null){ kbIdx=Math.min(restore,S.grid.length-1); const el=$("grid").children[kbIdx]; if(el) el.focus({preventScroll:true}); }
 }
 
 function tickCooldownText(){
@@ -320,9 +337,11 @@ function renderRequest(){
   if(S.solved){ el.classList.add("hidden"); return; }
   const rq=S.req[S.scene]||(S.req[S.scene]=newRequest(S.scene)), ch=CHAINS[rq.c];
   el.classList.remove("hidden");
-  el.innerHTML='<div class="rq-face">'+puppet("bloat")+'</div><div class="rq-main"><div class="rq-t">Inspector Bloat needs</div><div class="rq-tiles">'+
-    tile(item(rq.c,rq.t)[0],ch.css,rq.t,false,item(rq.c,rq.t)[1])+'<span class="rq-x">× '+rq.need+'</span><span class="rq-p">'+
-    Array.from({length:rq.need},(_,n)=>n<rq.have?"●":"○").join(" ")+'</span></div></div><div class="rq-rw">'+rewardHTML(rq.reward)+'</div>';
+  el.removeAttribute("aria-label");
+  const rw=rq.reward.k==="ins"?"+"+rq.reward.n+" Inspiration":rq.reward.k==="mag"?"+"+rq.reward.n+" Magnifier":"a free Lv1 generator";
+  el.innerHTML='<div class="rq-face" aria-hidden="true">'+puppet("bloat")+'</div><div class="rq-main"><div class="rq-t">Inspector Bloat needs</div><div class="rq-tiles">'+
+    tile(item(rq.c,rq.t)[0],ch.css,rq.t,false,"")+'<span class="sr-only">'+item(rq.c,rq.t)[1]+'</span><span class="rq-x">× '+rq.need+'</span><span class="rq-p" aria-hidden="true">'+
+    Array.from({length:rq.need},(_,n)=>n<rq.have?"●":"○").join(" ")+'</span><span class="sr-only">'+rq.have+' of '+rq.need+' delivered.</span></div></div><div class="rq-rw"><span aria-hidden="true">'+rewardHTML(rq.reward)+'</span><span class="sr-only">Reward: '+rw+'. Select a tile, then activate this card.</span></div>';
 }
 function applyReward(r){
   if(r.k==="ins"){ P.ins+=r.n; saveProfile(); return "+"+r.n+" Inspiration"; }
@@ -400,6 +419,7 @@ function spawnFrom(i){
   gen.ch--; if(gen.ch<=0) gen.cd = Date.now()+GEN_LEVELS[gen.l-1].cd*1000;
   S.grid[j] = mkItem(gen.c,pickTier(gen.c,gen.l));
   lastPop = j; commit();
+  announce("Spawned "+itemOf(S.grid[j])[1]+" at row "+(Math.floor(j/COLS)+1)+", column "+(j%COLS+1)+".");
 }
 
 function renderScenes(){
@@ -410,7 +430,8 @@ function renderScenes(){
   SCENE_IDS.forEach(id=>{
     const sc=SCENES[id], open=S.unlocked.includes(id), b=document.createElement("button");
     b.className=(id===S.scene?"on":"")+(open?"":" locked"); b.dataset.scene=id;
-    b.innerHTML=sc.icon+"<br>"+(open?sc.name:"🔒 "+sc.name);
+    b.setAttribute("aria-pressed",id===S.scene?"true":"false"); b.setAttribute("aria-label",sc.name+(open?"":", locked. Needs: "+needText(id)));
+    b.innerHTML='<span aria-hidden="true">'+sc.icon+'</span><br>'+(open?sc.name:'<span aria-hidden="true">🔒</span> '+sc.name);
     bar.appendChild(b);
   });
 }
@@ -471,7 +492,7 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
       S.grid[from]=null; S.grid[to]=null; tut(1); track("merge",{c:a.c,t:a.t,x:1}); commit(); reveal(CHAINS[a.c].clue); return;
     }
     S.grid[from]=null; tut(1);
-    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; Sfx.play("merge",b.t); fx(to,["✨","⭐"]); track("merge",{c:a.c,t:b.t}); commit(); }
+    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; Sfx.play("merge",b.t); fx(to,["✨","⭐"]); track("merge",{c:a.c,t:b.t}); commit(); announce("Merged into "+itemOf(b)[1]+", tier "+b.t+"."); }
     else { S.grid[to]=null; track("merge",{c:a.c,t:a.t,x:1}); commit(); reveal(CHAINS[a.c].clue); }
     return;
   }
@@ -518,7 +539,7 @@ window.addEventListener("pointerup", e=>{
   if(!drag) return;
   const d = drag; endDrag();
   const el = document.elementFromPoint(e.clientX,e.clientY);
-  const cell = el?.closest(".cell"), bin = el?.closest("#bin"), reqEl = el?.closest("#reqCard");
+  const cell = el?.closest(".cell"), bin = el?.closest("#bin"), reqEl = el?.closest("#reqCard"); kbIdx = cell?+cell.dataset.i:kbIdx;
   if(d.moved && cell && +cell.dataset.i===d.i){ d.moved=false; }   // dropped where it started: treat as a tap
   if(d.moved){
     selected=null;
@@ -526,8 +547,10 @@ window.addEventListener("pointerup", e=>{
     return;
   }
   if(d.long) return;
-  // tap
-  const i = d.i, it = S.grid[i];
+  tapCell(d.i);
+});
+function tapCell(i){
+  const it = S.grid[i];
   if(tool==="mag"){ tool=null; if(it) useMagnifier(i); else { toast("Magnifier put away."); renderTable(); } return; }
   if(selected===null){
     if(it && it.g){ if(it.ch>0) spawnFrom(i); else { focus=i; selected=i; renderTable(); } }   // tap = spawn
@@ -536,6 +559,23 @@ window.addEventListener("pointerup", e=>{
   }
   else if(selected===i){ selected=null; renderTable(); }
   else { const from=selected; selected=null; act(from,i); }
+}
+function focusCell(i){
+  const cells=$("grid").children; for(const c of cells) c.tabIndex=-1;
+  const el=cells[i]; if(el){ el.tabIndex=0; el.focus({preventScroll:false}); }
+}
+$("grid").addEventListener("keydown",e=>{                 // full keyboard play
+  const cell=e.target.closest(".cell"); if(!cell) return;
+  let i=+cell.dataset.i, n=S.grid.length, k=e.key, nav=true;
+  if(k==="ArrowRight") i=Math.min(n-1,i+1); else if(k==="ArrowLeft") i=Math.max(0,i-1);
+  else if(k==="ArrowDown") i=Math.min(n-1,i+COLS); else if(k==="ArrowUp") i=Math.max(0,i-COLS);
+  else if(k==="Home") i-=i%COLS; else if(k==="End") i=Math.min(n-1,i-(i%COLS)+COLS-1);
+  else nav=false;
+  if(nav){ e.preventDefault(); kbIdx=i; focusCell(i); if(S.grid[i]){ focus=i; renderInfo(); } return; }
+  if(k==="Enter"||k===" "){ e.preventDefault(); kbIdx=i;
+    if(e.shiftKey && S.grid[i]){ selected=i; focus=i; renderTable(); } else tapCell(i); }
+  else if(k==="Escape"){ selected=null; tool=null; renderTable(); announce("Cancelled."); }
+  else if((k==="Delete"||k==="Backspace") && S.grid[i]){ e.preventDefault(); act(i,"bin"); }
 });
 $("tray").addEventListener("click", e=>{
   if(e.target.closest("#toolMag")){
@@ -553,8 +593,38 @@ $("tray").addEventListener("click", e=>{
 /* =========================================================
    REVEAL & BOARD
    ========================================================= */
-function overlay(html){ const o=$("overlay"); o.innerHTML='<div class="modal">'+html+'</div>'; o.classList.remove("hidden"); }
-function closeOverlay(){ $("overlay").classList.add("hidden"); }
+let lastFocusEl=null;
+const setInert=on=>["app","menu"].forEach(id=>{ const el=$(id); if(el) el.inert=on; });
+function overlay(html){
+  const o=$("overlay"); if(o.classList.contains("hidden")) lastFocusEl=document.activeElement;
+  o.innerHTML='<div class="modal" role="dialog" aria-modal="true" tabindex="-1">'+html+'</div>';
+  const m=o.firstChild, hd=m.querySelector("h2"), who=m.querySelector(".who");
+  if(hd){ hd.id="dlgT"; m.setAttribute("aria-labelledby","dlgT"); } else m.setAttribute("aria-label",who?who.textContent:"Dialogue");
+  o.classList.remove("hidden"); setInert(true);
+  (m.querySelector("button")||m).focus({preventScroll:true});
+}
+function closeOverlay(){
+  const o=$("overlay"); if(o.classList.contains("hidden")) return;
+  o.classList.add("hidden"); o.innerHTML=""; setInert(false);
+  try{ if(lastFocusEl&&lastFocusEl.isConnected) lastFocusEl.focus({preventScroll:true}); }catch(e){}
+  lastFocusEl=null;
+}
+document.addEventListener("keydown",e=>{                   // Escape closes, Tab stays inside the dialog
+  const o=$("overlay"); if(o.classList.contains("hidden")) return;
+  if(e.key==="Escape"){ const b=$("ok")||$("iSkip"); if(b){ e.preventDefault(); b.click(); } return; }
+  if(e.key==="Tab"){
+    const f=[...o.querySelectorAll("button,[role=button],[tabindex]:not([tabindex='-1'])")].filter(x=>!x.disabled&&x.offsetParent!==null);
+    if(!f.length){ e.preventDefault(); return; }
+    const first=f[0], last=f[f.length-1], cur=document.activeElement;
+    if(e.shiftKey && (cur===first||cur===o.firstChild)){ e.preventDefault(); last.focus(); }
+    else if(!e.shiftKey && cur===last){ e.preventDefault(); first.focus(); }
+  }
+});
+document.addEventListener("keydown",e=>{                   // Enter/Space activate non-button controls (role=button)
+  if(e.key!=="Enter" && e.key!==" ") return;
+  const t=e.target; if(!t||!t.matches||!t.matches("[role=button]")||t.tagName==="BUTTON"||t.closest(".cell")) return;
+  e.preventDefault(); t.click();
+});
 
 function reveal(id){
   const c = CLUES[id];
@@ -575,11 +645,13 @@ function reveal(id){
 
 let armedClue=null;
 function renderBoard(){
+  const af=document.activeElement, bsel=(af&&af.closest&&af.closest("#cork"))?(af.dataset.c?'[data-c="'+af.dataset.c+'"]':af.dataset.s?'[data-s="'+af.dataset.s+'"]':null):null;
   const sp = $("suspects"); sp.innerHTML=""; sp.classList.toggle("four",Object.keys(SUSPECTS).length>3);
   Object.entries(SUSPECTS).forEach(([k,s],n)=>{
     const d=document.createElement("div"); d.className="card sus"+(armedClue?" armed":"")+(S.solved&&k===CULPRIT?" solved":""); d.dataset.s=k;
     d.style.setProperty("--r",[-1.5,1,-.5][n]+"deg");
-    d.innerHTML='<span class="face">'+faceHTML(s.face)+'</span><h4>'+s.name+'</h4>'+s.bio;
+    d.setAttribute("role","button"); d.tabIndex=0;
+    d.innerHTML='<span class="face">'+faceHTML(s.face)+'</span><b class="ch">'+s.name+'</b>'+s.bio+'<span class="sr-only"> Suspect. '+(armedClue?"Activate to string the selected clue to them.":"Select a clue first.")+'</span>';
     sp.appendChild(d);
   });
   const cl=$("clues"); cl.innerHTML="";
@@ -588,8 +660,9 @@ function renderBoard(){
     const c=CLUES[id], d=document.createElement("div");
     d.className="card clue"+(armedClue===id?" armed":"")+(S.links[id]?" linked":""); d.dataset.c=id;
     d.style.setProperty("--r",[1,-1.2,.6,-.8][n%4]+"deg");
-    d.innerHTML='<span class="face">'+ic(c.emoji)+'</span><h4>'+c.title+'</h4>'+(c.kind==='contradiction'?'<small class="contra">⚡ CONTRADICTION</small>':'')+c.text+
-      (S.links[id]?'<small>🔗 strung to '+SUSPECTS[S.links[id]].name+'</small>':'');
+    d.setAttribute("role","button"); d.tabIndex=0; d.setAttribute("aria-pressed",armedClue===id?"true":"false");
+    d.innerHTML='<span class="face">'+ic(c.emoji)+'</span><b class="ch">'+c.title+'</b>'+(c.kind==='contradiction'?'<small class="contra">CONTRADICTION</small>':'')+c.text+
+      (S.links[id]?'<small>Strung to '+SUSPECTS[S.links[id]].name+'</small>':'')+'<span class="sr-only"> '+(S.links[id]?"Activate to re-string.":"Activate to choose it, then pick a suspect.")+'</span>';
     cl.appendChild(d);
   });
   const linked = NEED.filter(id=>S.links[id]===CULPRIT).length;
@@ -598,6 +671,7 @@ function renderBoard(){
   $("boardTip").textContent = S.solved ? "Case closed." : armedClue ? "Now tap the suspect it points to." : "Tap a clue, then tap the suspect it points to. ("+linked+"/"+NEED.length+" damning threads)";
   const n=S.clues.filter(id=>!S.links[id]).length; const b=$("badge"); b.textContent=n; b.classList.toggle("hidden",!n);
   requestAnimationFrame(drawStrings);
+  if(bsel){ const el=$("cork").querySelector(bsel); if(el) el.focus({preventScroll:true}); }
 }
 
 function drawStrings(){
@@ -704,6 +778,7 @@ function showTab(t){
   const b = t==="board";
   $("viewTable").classList.toggle("hidden",b); $("viewBoard").classList.toggle("hidden",!b);
   $("tabTable").classList.toggle("on",!b); $("tabBoard").classList.toggle("on",b);
+  $("tabTable").setAttribute("aria-selected",String(!b)); $("tabBoard").setAttribute("aria-selected",String(b));
   if(b) renderBoard(); else renderTable();
 }
 /* ---------- tutorial coach ---------- */
@@ -716,13 +791,17 @@ function tut(n){ if(S.tut<=n) S.tut=n+1; }
 function renderCoach(){
   const c=$("coach");
   if(S.tut>=TUT.length||S.solved){ c.classList.add("hidden"); return; }
-  c.classList.remove("hidden"); c.innerHTML=TUT[S.tut]+'<a id="skipTut">skip tips</a>';
+  c.classList.remove("hidden"); c.innerHTML=TUT[S.tut]+'<button id="skipTut" class="linkbtn">skip tips</button>';
 }
 $("coach").addEventListener("click",e=>{ if(e.target.id==="skipTut"){ S.tut=99; commit(); } });
 
 /* ---------- settings ---------- */
-const CFG_KEY="merger-mystery-settings"; let CFG={reduce:false,sfx:true,music:false,theme:"day"};
+const CFG_KEY="merger-mystery-settings"; let CFG={reduce:null,text:0,sfx:true,music:false,theme:"day",v:2};
 try{ Object.assign(CFG,JSON.parse(localStorage.getItem(CFG_KEY))||{}); }catch(e){}
+if(CFG.v!==2){ CFG.reduce=null; CFG.v=2; }                 // older saves defaulted reduce-motion to false: let the system setting decide
+const mqReduce=window.matchMedia?window.matchMedia("(prefers-reduced-motion: reduce)"):null;
+function reduced(){ return CFG.reduce===null ? !!(mqReduce&&mqReduce.matches) : !!CFG.reduce; }
+if(mqReduce&&mqReduce.addEventListener) mqReduce.addEventListener("change",()=>applyCfg());
 const THEMES=["day","night","auto"], THEME_LABEL={day:"Day ☀️",night:"Night 🌙",auto:"Auto (system)"};
 const dark=window.matchMedia?window.matchMedia("(prefers-color-scheme: dark)"):null;
 function isNight(){ return CFG.theme==="night" || (CFG.theme==="auto" && !!(dark&&dark.matches)); }
@@ -732,7 +811,7 @@ function applyTheme(){
   const b=$("themeBtn"); if(b) b.textContent=n?"☀️":"🌙";
 }
 if(dark&&dark.addEventListener) dark.addEventListener("change",()=>{ if(CFG.theme==="auto") applyTheme(); });
-function applyCfg(){ applyTheme(); document.body.classList.toggle("reduce",!!CFG.reduce); Sfx.setMusic(!!CFG.music); try{ localStorage.setItem(CFG_KEY,JSON.stringify(CFG)); }catch(e){} }
+function applyCfg(){ applyTheme(); document.body.classList.toggle("reduce",reduced()); document.body.classList.toggle("txt1",CFG.text===1); document.body.classList.toggle("txt2",CFG.text===2); Sfx.setMusic(!!CFG.music); try{ localStorage.setItem(CFG_KEY,JSON.stringify(CFG)); }catch(e){} }
 
 /* ---------- audio: everything synthesised with WebAudio (no asset files) ---------- */
 const Sfx=(()=>{
@@ -825,6 +904,7 @@ $("mHow").onclick=()=>{
     '<li><b>Merge</b> two matching items to raise their tier. Reach the top tier of a chain to <b>reveal a clue</b>.</li>'+
     '<li><b>Merge two identical generators</b> to upgrade them: more charges, better items. Tap any tile to see its merge chain (undiscovered steps show as ?).</li>'+
     '<li>Prefer tapping? Tap a tile, then tap the one to merge with. Long-press a generator to select it.</li>'+
+    '<li><b>Keyboard:</b> Tab to the table, arrow keys to move, Enter to tap, Shift+Enter to select a generator, Delete to file away, Escape to cancel. Everything has a screen-reader label.</li>'+
     '<li>On the <b>Red-String Board</b>, tap a clue, then the suspect it points to. Good strings pull taut; bad ones snap and cost Composure.</li>'+
     '<li>Beware <b>red herrings</b>. Not every clue is evidence.</li>'+
     '<li><b>Tools:</b> 🔍 the Magnifier shows what a tile becomes. Poe-tential the raven spends 💡 Inspiration to point out a merge. Earn both from clues, requests and the Daily Casebook.</li>'+
@@ -836,7 +916,7 @@ $("mCases").onclick=()=>{
   const cards=CASE_LIST().map(c=>{
     const st=peekSave(c.id), locked=c.unlock && !P.solved[c.unlock];
     const tag = locked ? "🔒 Solve Case "+CASES[c.unlock].num+" first" : st.solved ? "⭐ Solved" : st.started ? "In progress · "+st.clues+" clue"+(st.clues===1?"":"s") : "New";
-    return '<div class="casecard'+(locked?' locked':'')+'" data-id="'+c.id+'"><b>'+c.num+' · '+c.title+'</b><small>'+tag+' — '+c.blurb+'</small></div>';
+    return '<div class="casecard'+(locked?' locked':'')+'" role="button" tabindex="0"'+(locked?' aria-disabled="true"':'')+' data-id="'+c.id+'"><b>'+c.num+' · '+c.title+'</b><small>'+tag+' — '+c.blurb+'</small></div>';
   }).join('');
   overlay('<h2>Case Files</h2>'+cards+'<div class="casecard locked"><b>🔒 '+(CASE_LIST().length+1)+' · ???</b><small>Coming soon</small></div><button id="ok">Close</button>');
   $("ok").onclick=closeOverlay;
@@ -855,7 +935,8 @@ $("mSettings").onclick=()=>{
       '<p><button id="sTheme">Theme: '+THEME_LABEL[CFG.theme]+'</button></p>'+
       '<p><button id="sSfx">Sound effects: '+(CFG.sfx?"ON":"OFF")+'</button></p>'+
       '<p><button id="sMusic">Music: '+(CFG.music?"ON":"OFF")+'</button></p>'+
-      '<p><button id="sMotion">Reduce motion: '+(CFG.reduce?"ON":"OFF")+'</button></p>'+
+      '<p><button id="sMotion">Reduce motion: '+(CFG.reduce===null?"Auto (system)":CFG.reduce?"On":"Off")+'</button></p>'+
+      '<p><button id="sText">Text size: '+["Normal","Large","Extra large"][CFG.text||0]+'</button></p>'+
       '<p><button id="sStats">📊 Play stats</button></p>'+
       (Stats.shareAvailable?'<p><button id="sShare">Share anonymous stats: '+(CFG.share?"ON":"OFF")+'</button></p>':'')+
       '<p><button id="sErase" class="danger">Erase saved progress</button></p><p><button id="ok">Back</button></p>');
@@ -868,7 +949,8 @@ $("mSettings").onclick=()=>{
     $("sTheme").onclick=()=>{ CFG.theme=THEMES[(THEMES.indexOf(CFG.theme)+1)%THEMES.length]; applyCfg(); draw(); };
     $("sSfx").onclick=()=>{ CFG.sfx=!CFG.sfx; applyCfg(); draw(); };
     $("sMusic").onclick=()=>{ CFG.music=!CFG.music; applyCfg(); draw(); };
-    $("sMotion").onclick=()=>{ CFG.reduce=!CFG.reduce; applyCfg(); draw(); };
+    $("sMotion").onclick=()=>{ CFG.reduce=CFG.reduce===null?true:CFG.reduce===true?false:null; applyCfg(); draw(); };
+    $("sText").onclick=()=>{ CFG.text=((CFG.text||0)+1)%3; applyCfg(); draw(); };
     $("sErase").onclick=()=>{ if(confirm("Erase ALL saved progress, including solved cases?")){ Object.keys(CASES).forEach(id=>{ try{ localStorage.removeItem(SAVE_PREFIX+id); }catch(e){} }); P=defaultProfile(); saveProfile(); openCase("case1"); S=fresh(); save(); commit(); closeOverlay(); showMenu(); toast("Save erased."); } };
     $("ok").onclick=closeOverlay;
   }; draw();

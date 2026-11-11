@@ -156,5 +156,5 @@ Cross-chain: a Vial merged with a Reagent skips a tier. Sources level up to spaw
 6. **Data-driven cases** ✅ and **Case 2** ✅. A case is one file in `cases/`.
 7. **Custom vector icons, raven and scene banners** ✅
 8. **Hints, Magnifier, requests, Daily Casebook, growing table** ✅
-9. **Launch prep (next):** analytics funnels, balance pass from real playtests, accessibility review, store/web listing.
+9. **Launch prep:** local-first [analytics](analytics.html) ✅ and an [accessibility pass](accessibility.html) ✅ (WCAG 2.1 AA, keyboard play, screen-reader labels, text size). Next: balance pass from playtests, store/web listing.
 10. **PixiJS port** with commissioned art, once the design has settled.

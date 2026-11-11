@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta id="themeColor" name="theme-color" content="#f6e7d3">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div id="menu" class="screen">
+<div id="menu" class="screen" role="main">
   <svg class="bunting" viewBox="0 0 400 46" preserveAspectRatio="none" aria-hidden="true"><path d="M-4 6Q100 34 200 8Q300 34 404 6" fill="none" stroke="#3a2b33" stroke-width="2.5"/><polygon points="19,16 41,16 30,38" fill="#f2b5b5" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="69,23 91,23 80,45" fill="#f0bf4c" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="119,27 141,27 130,49" fill="#4fa3a5" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="169,24 191,24 180,46" fill="#f2b5b5" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="219,25 241,25 230,47" fill="#a9d3e0" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="269,28 291,28 280,50" fill="#f0bf4c" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="319,22 341,22 330,44" fill="#4fa3a5" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/><polygon points="367,14 389,14 378,36" fill="#f2b5b5" stroke="#3a2b33" stroke-width="2" stroke-linejoin="round"/></svg>
   <span class="moon"></span><span class="star s1">✦</span><span class="star s2">✦</span><span class="star s3">✦</span><span class="star s4">✦</span><span class="star s5">✦</span>
   <button id="themeBtn" class="themebtn" aria-label="Toggle day/night theme">🌙</button>
@@ -35,7 +35,7 @@
   <div class="ver" id="verLine">PROTOTYPE</div>
 </div>
 
-<div id="app" class="hidden">
+<div id="app" class="hidden" role="main">
   <h1 id="caseTitle">The Late Mr. Grimsby<small id="caseSub">A MERGER MYSTERY &middot; CASE 1</small></h1>
 
   <div class="hud">
@@ -44,23 +44,23 @@
     <div class="pill" id="composure"></div>
   </div>
 
-  <div class="tabs">
-    <button id="tabTable" class="on">🔍 Evidence Table</button>
-    <button id="tabBoard">📌 String Board<span id="badge" class="dot hidden">0</span></button>
+  <div class="tabs" id="mainTabs" role="tablist" aria-label="Views">
+    <button id="tabTable" class="on" role="tab" aria-selected="true" aria-controls="viewTable">🔍 Evidence Table</button>
+    <button id="tabBoard" role="tab" aria-selected="false" aria-controls="viewBoard">📌 String Board<span id="badge" class="dot hidden">0</span></button>
   </div>
 
   <!-- Evidence table -->
-  <section id="viewTable">
-    <div class="tabs" id="scenes"></div>
-    <div id="reqCard" class="req hidden"></div>
+  <section id="viewTable" role="tabpanel" aria-labelledby="tabTable">
+    <div class="tabs" id="scenes" role="group" aria-label="Rooms"></div>
+    <div id="reqCard" class="req hidden" role="button" tabindex="0"></div>
     <div id="coach" class="hidden"></div>
-    <div class="desk" id="desk"><div class="room" id="room"></div><div id="grid"></div></div>
-    <div class="geninfo" id="genInfo"></div>
+    <div class="desk" id="desk"><div class="room" id="room"></div><div id="grid" role="group" aria-label="Evidence table. Arrow keys move, Enter taps, Shift+Enter selects a generator, Escape cancels, Delete files a tile away."></div></div>
+    <div class="geninfo" id="genInfo" role="region" aria-label="Selected tile and its merge chain"></div>
     <div class="tray" id="tray"></div>
   </section>
 
   <!-- Board -->
-  <section id="viewBoard" class="hidden">
+  <section id="viewBoard" class="hidden" role="tabpanel" aria-labelledby="tabBoard">
     <div class="cork" id="cork">
       <svg id="strings"></svg>
       <div class="row suspects" id="suspects"></div>
@@ -70,12 +70,13 @@
     <button id="confront" class="hidden danger" style="width:100%">⚖️ Confront Lady Vesper</button>
   </section>
 
-  <button id="reset" style="font-size:12px;opacity:.6">↺ Restart case</button>
+  <button id="reset" style="font-size:12px">↺ Restart case</button>
   <p class="note"><a style="color:var(--dim)" href="docs/GDD.html">Design doc</a> · <a style="color:var(--dim)" href="docs/case-1-the-late-mr-grimsby.html">Case 1 script</a></p>
 </div>
 
 <div id="overlay" class="hidden"></div>
-<div id="toast" class="hidden"></div>
+<div id="toast" class="hidden" aria-hidden="true"></div>
+<div id="sr" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="cases/case1.js"></script>
 <script src="cases/case2.js"></script>

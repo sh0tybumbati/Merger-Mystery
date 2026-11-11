@@ -1,7 +1,7 @@
 /* Merger Mystery service worker: offline play.
    Strategy: precache the app shell; serve everything same-origin cache-first and refresh it in the background
    (stale-while-revalidate), so updates arrive on the next launch. Bump CACHE when the file list changes. */
-const CACHE = "mm-shell-v8";
+const CACHE = "mm-shell-v9";
 const SHELL = [
   "./", "index.html", "style.css", "game.js", "icons.js", "analytics.js", "cases/case1.js", "cases/case2.js", "cases/case3.js", "cases/case4.js", "cases/case5.js", "cases/case6.js", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png"
