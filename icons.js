@@ -56,15 +56,56 @@ ICON["🚗"]=`<path d="M5 31v-7l4-9c1-3 3-4 6-4h20c3 0 5 1 6 4l4 9v7z" fill="${D
 ICON["🔍"]=`<circle cx="20" cy="20" r="13" fill="#eaf6f7"/><path d="M13 16a8 8 0 0 1 6-5" fill="none" stroke="#fff" stroke-width="3"/><path d="M30 30l12 12" fill="none" stroke-width="6" stroke="${BR}"/><path d="M30 30l12 12" fill="none" stroke-width="2.4"/>`;
 ICON["🎁"]=`<rect x="6" y="20" width="36" height="22" rx="2" fill="${P}"/><rect x="4" y="13" width="40" height="9" rx="2" fill="${RS}"/><rect x="21" y="13" width="6" height="29" fill="${Y}"/><path d="M24 13c-8-10-14 0-6 0zM24 13c8-10 14 0 6 0z" fill="${Y}"/>`;
 
+// ---------- cases 3-6: Marmalade Express, Pâtisserie, Gull Rock, Pantomime ----------
+const rope=(d)=>`<path d="${d}" fill="none" style="stroke:var(--line);stroke-width:10"/><path d="${d}" fill="none" style="stroke:${BR};stroke-width:6"/>`;
+const GOLD="#d9a63a", JAM="#e8892f", PAPER="#f3deb0";
+// -- jam / bakery
+ICON["🍞"]=`<path d="M9 21c-3-9 5-14 15-14s18 5 15 14c3 2 3 5 0 7v13H9V28c-3-2-3-5 0-7z" fill="#e8b46a"/><path d="M15 21c0-4 4-6 9-6s9 2 9 6v18H15z" fill="#f6dba0"/><circle class="ns" cx="21" cy="26" r="1.3" fill="${D}"/><circle class="ns" cx="27" cy="31" r="1.3" fill="${D}"/><circle class="ns" cx="22" cy="35" r="1.3" fill="${D}"/>`;
+ICON["🥄"]=`<rect x="21" y="20" width="6" height="26" rx="3" fill="${ST}" transform="rotate(-38 24 33)"/><ellipse cx="15" cy="15" rx="8.5" ry="11" fill="${ST}" transform="rotate(38 15 15)"/><ellipse cx="15" cy="15" rx="5" ry="7" fill="${JAM}" transform="rotate(38 15 15)"/><path d="M36 38c1 3 1 5-1 6" fill="none"/><circle cx="36" cy="43" r="2.4" fill="${JAM}"/>`;
+ICON["🍯"]=`<rect x="13" y="5" width="22" height="8" rx="2" fill="${R}"/><path d="M12 13h24l2 5v19a6 6 0 0 1-6 6H16a6 6 0 0 1-6-6V18z" fill="${JAM}"/><rect x="14" y="21" width="20" height="14" rx="2" fill="${C}"/><path d="M18 26h12M18 30h8" fill="none" stroke-width="1.8"/>`;
+ICON["⚙️"]=[0,45,90,135].map(a=>`<rect x="21" y="5" width="6" height="38" rx="2" fill="${Y}" transform="rotate(${a} 24 24)"/>`).join('')+`<circle cx="24" cy="24" r="13" fill="${Y}"/><circle cx="24" cy="24" r="5" fill="${C}"/>`;
+ICON["🪙"]=`<circle cx="24" cy="24" r="17" fill="${Y}"/><circle cx="24" cy="24" r="11" fill="none"/><path d="M24 17v14M20 21h6a3 3 0 0 1 0 5h-6" fill="none" stroke-width="2.4"/>`;
+ICON["🗝️"]=`<rect x="20" y="21" width="24" height="6" rx="2" fill="${Y}"/><rect x="32" y="26" width="4" height="8" rx="1" fill="${Y}"/><rect x="39" y="26" width="4" height="6" rx="1" fill="${Y}"/><circle cx="13" cy="24" r="10" fill="${Y}"/><circle cx="13" cy="24" r="4" fill="${C}"/>`;
+ICON["🚶"]=`<rect x="16" y="29" width="6" height="15" rx="3" fill="${D}" transform="rotate(12 19 29)"/><rect x="26" y="29" width="6" height="15" rx="3" fill="${D}" transform="rotate(-12 29 29)"/><rect x="16" y="15" width="16" height="18" rx="5" fill="${SK}"/><rect x="9" y="17" width="6" height="14" rx="3" fill="${SK}" transform="rotate(14 12 17)"/><rect x="33" y="17" width="6" height="14" rx="3" fill="${SK}" transform="rotate(-14 36 17)"/><circle cx="24" cy="9" r="6" fill="${SKIN}"/>`;
+ICON["✨"]=`<path d="M22 4l5 15 15 5-15 5-5 15-5-15-15-5 15-5z" fill="${Y}"/><path d="M39 30l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" fill="${W}"/><path d="M9 4l1.5 4.5L15 10l-4.5 1.5L9 16l-1.5-4.5L3 10l4.5-1.5z" fill="${W}"/>`;
+ICON["🔘"]=`<circle cx="24" cy="24" r="17" fill="${Y}"/><circle cx="24" cy="24" r="11" fill="none"/><circle class="ns" cx="20" cy="21" r="2.2" fill="${D}"/><circle class="ns" cx="28" cy="21" r="2.2" fill="${D}"/><circle class="ns" cx="20" cy="28" r="2.2" fill="${D}"/><circle class="ns" cx="28" cy="28" r="2.2" fill="${D}"/>`;
+ICON["🍃"]=`<path d="M7 41C6 21 19 7 41 7c1 22-12 35-34 34z" fill="${GR}"/><path d="M9 39L31 17" fill="none"/><path d="M20 28l1-8M27 21l-1-8" fill="none" stroke-width="1.8"/>`;
+ICON["☕"]=`<ellipse cx="22" cy="42" rx="19" ry="3.5" fill="${TAN}"/><path d="M8 17h28v11a14 14 0 0 1-28 0z" fill="${W}"/><path d="M36 20h3a5 5 0 0 1 0 11h-5" fill="none"/><ellipse cx="22" cy="17" rx="14" ry="3.6" fill="#6b4630"/><circle class="ns" cx="18" cy="17" r="1.2" fill="${TAN}"/><circle class="ns" cx="25" cy="18" r="1" fill="${TAN}"/>`;
+ICON["🌰"]=`<path d="M24 4c10 8 14 18 9 29-2 5-6 9-9 11-3-2-7-6-9-11C10 22 14 12 24 4z" fill="#e0b98a"/><path d="M24 12v26" fill="none"/><path d="M17 22c3 4 3 10 0 14M31 22c-3 4-3 10 0 14" fill="none" stroke-width="1.6"/>`;
+ICON["🍬"]=`<path d="M14 24L3 14v20z" fill="${RS}"/><path d="M34 24l11-10v20z" fill="${RS}"/><circle cx="24" cy="24" r="13" fill="${P}"/><path d="M15 17c5 4 12 4 18 0M15 31c5-4 12-4 18 0" fill="none" stroke-width="1.8"/>`;
+ICON["🍥"]=`<path d="M6 32l7-10 9 4-3 11z" fill="${TAN}"/><path d="M24 27l9-7 8 7-4 9z" fill="${TAN}"/><path d="M13 44l8-5 8 5z" fill="${TAN}"/><circle class="ns" cx="12" cy="30" r="1.2" fill="${D}"/><circle class="ns" cx="33" cy="28" r="1.2" fill="${D}"/><circle class="ns" cx="21" cy="42" r="1.1" fill="${D}"/>`;
+ICON["🍰"]=`<path d="M5 28h38v13H5z" fill="${TAN}"/><path d="M5 28c0-8 8-11 19-11s19 3 19 11c-4 3-6-1-10 2s-6-3-9 0-6-3-9 0-6-2-10-2z" fill="${P}"/><circle cx="24" cy="12" r="4.5" fill="${R}"/><path d="M5 35h38" fill="none" stroke-width="1.8"/>`;
+ICON["🧥"]=`<path d="M12 6h24l3 24H9z" fill="${P}"/><rect x="7" y="29" width="34" height="11" rx="2" fill="${C}"/><circle cx="34" cy="34.5" r="2.3" fill="${D}"/><path class="ns" d="M13 33c2-3 6-3 8 0 2 3-3 5-6 4z" fill="${RS}"/><path d="M12 6c4 3 20 3 24 0" fill="none"/>`;
+ICON["📰"]=`<rect x="6" y="9" width="36" height="30" rx="2" fill="${C}"/><rect x="10" y="13" width="28" height="7" fill="${D}"/><rect x="10" y="23" width="11" height="10" fill="${SK}"/><path d="M25 24h13M25 29h13M10 36h28" fill="none" stroke-width="1.8"/>`;
+ICON["🫓"]=`<path d="M6 28c-2-11 8-16 18-14 12-3 20 4 18 14 1 9-8 12-18 11-10 2-20-1-18-11z" fill="${PAPER}"/><path d="M16 24c3 2 5 2 8 0M25 31c3 2 6 1 8-1" fill="none" stroke-width="1.8"/><circle class="ns" cx="14" cy="32" r="1.3" fill="${D}"/>`;
+// -- Gull Rock
+ICON["🔗"]=rope("M24 24C24 12 7 12 7 24s17 12 17 0 17-12 17 0-17 12-17 0z")+rope("M38 31l5 9M10 31L5 40");
+ICON["⛈️"]=`<path d="M8 28a8 8 0 0 1 3-15 11 11 0 0 1 21-2 8 8 0 0 1 5 17z" fill="#9aa6b8"/><path d="M27 24l-9 12h6l-3 10 12-15h-6z" fill="${Y}"/>`;
+ICON["🔔"]=`<circle cx="24" cy="6" r="3" fill="${Y}"/><path d="M24 8c-8 2-12 8-12 15v6l-5 6h34l-5-6v-6c0-7-4-13-12-15z" fill="${Y}"/><circle cx="24" cy="41" r="4" fill="${BR}"/>`;
+ICON["🐚"]=`<path d="M24 40L5 22a19 19 0 0 1 38 0z" fill="#f5c9b0"/><path d="M24 40L12 14M24 40L24 6M24 40l12-26M24 40L8 28M24 40l16-12" fill="none" stroke-width="1.8"/><rect x="18" y="39" width="12" height="5" rx="2" fill="${TAN}"/>`;
+ICON["🐌"]=`<path d="M4 42h38c0-5-5-8-10-8H14c-6 0-10 0-10 8z" fill="#c8c0a8"/><circle cx="29" cy="23" r="14" fill="#d4a373"/><path d="M29 23a4 4 0 1 1 4 4 8 8 0 1 1-8-8 12 12 0 1 1 12 12" fill="none" stroke-width="2"/><path d="M8 34L5 24M14 34l-1-10" fill="none"/><circle cx="5" cy="23" r="2.4" fill="#c8c0a8"/><circle cx="13" cy="23" r="2.4" fill="#c8c0a8"/>`;
+ICON["🛢️"]=`<rect x="9" y="5" width="30" height="38" rx="6" fill="${T}"/><path d="M9 14h30M9 34h30" fill="none"/><rect x="14" y="17" width="20" height="14" rx="2" fill="${C}"/><path d="M24 19c-3 4-4 5-4 7a4 4 0 0 0 8 0c0-2-1-3-4-7z" fill="${Y}"/>`;
+// -- Pantomime
+ICON["🧶"]=`<circle cx="24" cy="25" r="16" fill="#d9c08a"/><path d="M11 18c8 4 18 4 26 0M9 26c9 4 21 4 30 0M12 34c8 3 16 3 24 0" fill="none" stroke-width="1.8"/><path d="M36 36c8 2 8 8 1 8" fill="none"/>`;
+ICON["✂️"]=`<path d="M17 31L37 4l4 3-18 28z" fill="${ST}"/><path d="M31 31L11 4 7 7l18 28z" fill="${ST}"/><circle cx="14" cy="38" r="6" fill="${R}"/><circle cx="34" cy="38" r="6" fill="${R}"/><circle class="ns" cx="24" cy="26" r="2" fill="${D}"/>`;
+ICON["💎"]=`<path d="M12 12h24l9 11-21 21L3 23z" fill="${SK}"/><path d="M3 23h42M17 12l7 11 7-11M24 23v21" fill="none" stroke-width="1.8"/><path class="ns" d="M13 19l3-4" stroke="#fff" stroke-width="2.4"/>`;
+ICON["🖐️"]=`<rect x="12" y="8" width="6" height="22" rx="3" fill="${W}"/><rect x="19" y="4" width="6" height="26" rx="3" fill="${W}"/><rect x="26" y="5" width="6" height="25" rx="3" fill="${W}"/><rect x="33" y="10" width="6" height="20" rx="3" fill="${W}"/><rect x="5" y="24" width="6" height="14" rx="3" fill="${W}" transform="rotate(-25 8 30)"/><rect x="11" y="24" width="28" height="18" rx="7" fill="${W}"/><circle class="ns" cx="9" cy="44" r="1.3" fill="${D}"/><circle class="ns" cx="40" cy="45" r="1.1" fill="${D}"/>`;
+ICON["👍"]=`<ellipse cx="24" cy="24" rx="14" ry="19" fill="${W}"/><path d="M13 24a11 15 0 0 1 22 0M17 26a7 11 0 0 1 14 0M21 28a3 6 0 0 1 6 0M12 31a13 16 0 0 0 24 0" fill="none" stroke-width="1.8"/><circle class="ns" cx="42" cy="8" r="1.6" fill="${D}"/><circle class="ns" cx="6" cy="40" r="1.4" fill="${D}"/>`;
+ICON["🙅"]=`<rect x="14" y="19" width="20" height="21" rx="6" fill="${L}"/><circle cx="24" cy="11" r="7" fill="${SKIN}"/><rect x="11" y="24" width="26" height="6" rx="3" fill="${SKIN}" transform="rotate(18 24 27)"/><rect x="11" y="24" width="26" height="6" rx="3" fill="${SKIN}" transform="rotate(-18 24 27)"/><path d="M4 4l9 9M13 4l-9 9" fill="none" style="stroke:var(--line);stroke-width:2.3"/>`;
+ICON["🧑‍🔧"]=`<rect x="14" y="19" width="20" height="22" rx="6" fill="${D}"/><path d="M14 31h20" fill="none" stroke="${Y}" style="stroke:${Y};stroke-width:3"/><circle cx="24" cy="11" r="7" fill="${SKIN}"/><path d="M16 10a8 8 0 0 1 16 0z" fill="${D}"/><rect x="32" y="26" width="4" height="14" rx="2" fill="${BR}" transform="rotate(20 34 33)"/><rect x="30" y="22" width="10" height="6" rx="2" fill="${ST}" transform="rotate(20 35 25)"/>`;
+ICON["💌"]=`<rect x="5" y="11" width="38" height="28" rx="3" fill="${P}"/><path d="M5 13l19 15 19-15" fill="none"/><path d="M24 36c-5-4-8-6-8-9a4 4 0 0 1 8-1 4 4 0 0 1 8 1c0 3-3 5-8 9z" fill="${R}"/>`;
+
 // ---------- compose ----------
 const inner=e=>ICON[e];
 const svg=(body,cls)=>`<svg class="ic${cls?' '+cls:''}" viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
-window.ic=(e,cls)=>ICON[e]?svg(ICON[e],cls):`<span class="emo" aria-hidden="true">${e}</span>`;
+const norm=e=>String(e).replace(/\uFE0F/g,"");
+Object.keys(ICON).forEach(k=>{ ICON[norm(k)]=ICON[k]; });
+window.ic=(e,cls)=>{ const g=ICON[e]||ICON[norm(e)]; return g?svg(g,cls):`<span class="emo" aria-hidden="true">${e}</span>`; };
 
 // generators: four level bases (crate, cabinet, counter, little building), tinted by the chain colour, wearing a glyph badge
 const CHAIN_FILL={"chain-poison":"var(--mint)","chain-words":"var(--sky)","chain-fibre":"var(--pink)","chain-seance":"var(--lilac)","chain-gold":"var(--gold)","chain-steel":"var(--steel)"};
 function badge(glyph,cx,cy,r){
-  const g=ICON[glyph]; const s=(r*1.5)/48;
+  const g=ICON[glyph]||ICON[norm(glyph)]; const s=(r*1.5)/48;
   return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${C}"/>`+(g?`<g transform="translate(${cx-24*s} ${cy-24*s}) scale(${s})">${g}</g>`:'');
 }
 const BASES=[

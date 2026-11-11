@@ -44,4 +44,3 @@ Merging never requires dragging: tap a tile, then tap its partner. Dragging is a
 
 - Cooldown seconds on a recharging generator are announced when you focus it, not live.
 - The red-string lines are drawn art; their meaning is in the card text ("Strung to …").
-- Case 3–6 items still use emoji where no custom icon exists yet; emoji are labelled by their names, so this affects looks, not access.
