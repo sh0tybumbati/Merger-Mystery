@@ -250,3 +250,10 @@ body.night .desk{background:var(--felt-night,var(--teal))}
 .dcell.now{outline:3px solid var(--mustard);outline-offset:1px}
 .dcell.got{opacity:.5}
 #mDaily .dot{margin-left:8px}
+
+/* ---------- stats panel ---------- */
+.stat-wrap{max-height:42vh;overflow:auto;text-align:left}
+.stat-case{background:var(--card);border:2px solid var(--line);border-radius:12px;padding:8px 10px;margin:8px 0;font-size:13px}
+.stat-t{width:100%;border-collapse:collapse;margin:6px 0;font-size:12px}
+.stat-t td{padding:2px 0;border-bottom:1px dashed var(--cell-line)}
+.stat-t td:last-child{text-align:right;color:var(--dim)}

@@ -243,18 +243,21 @@ function setHint(cells,ms){
   clearTimeout(hintT); hintCells=cells; renderTable();
   hintT=setTimeout(()=>{ hintCells=[]; renderTable(); },ms||5000);
 }
-function poeHint(){
-  if(P.ins<=0) return toast("No Inspiration left. Find clues, finish requests or claim the Daily Casebook.");
-  const g=S.grid; let best=null;
-  const consider=(i,j,score)=>{ if(!best||score>best.score) best={i,j,score}; };
+function mergeCandidates(g){                          // every possible merge on a board, best first
+  const out=[];
   for(let i=0;i<g.length;i++) for(let j=i+1;j<g.length;j++){
     const a=g[i], b=g[j]; if(!a||!b||a.c!==b.c) continue;
-    if(a.g&&b.g){ if(a.l===b.l&&a.l<GEN_MAX) consider(i,j,100+a.l); continue; }
+    if(a.g&&b.g){ if(a.l===b.l&&a.l<GEN_MAX) out.push({i,j,score:100+a.l}); continue; }
     if(a.g||b.g||a.t!==b.t) continue;
     const pr=CHAINS[a.c].pair;
-    if(pr&&a.t===pr.tier){ if(a.v!==b.v) consider(i,j,300); continue; }       // a clashing pair: it makes a clue!
-    consider(i,j, a.t===maxTier(a.c)?300:a.t*10);
+    if(pr&&a.t===pr.tier){ if(a.v!==b.v) out.push({i,j,score:300}); continue; }       // a clashing pair: it makes a clue!
+    out.push({i,j,score:a.t===maxTier(a.c)?300:a.t*10});
   }
+  return out.sort((x,y)=>y.score-x.score);
+}
+function poeHint(){
+  if(P.ins<=0){ track("hint_empty"); return toast("No Inspiration left. Find clues, finish requests or claim the Daily Casebook."); }
+  const g=S.grid, best=mergeCandidates(g)[0]||null;
   let msg;
   if(best){ P.ins--; saveProfile(); msg="Caw! Merge these two."+(best.score>=300?" That one makes a clue!":""); setHint([best.i,best.j]); }
   else {
@@ -265,7 +268,7 @@ function poeHint(){
     else if(S.clues.some(id=>!S.links[id])){ P.ins--; saveProfile(); msg="You have unpinned clues! Try the String Board."; renderTable(); }
     else { msg="Everything is recharging. Have a look at another room, or wait a moment."; }
   }
-  toast("🐦‍⬛ "+msg);
+  track("hint",{k:best?"merge":"other"}); toast("🐦‍⬛ "+msg);
 }
 function useMagnifier(i){
   const it=S.grid[i]; if(!it){ renderTable(); return; }
@@ -285,7 +288,7 @@ function useMagnifier(i){
       else { S.seen[k]=1; if(pr&&nt===pr.tier) pr.variants.forEach((_,v)=>S.seen[seenKey(it.c,nt,v)]=1); msg="Merged, this becomes: "+item(it.c,nt,pr&&nt===pr.tier?0:undefined)[1].split(":")[0]+"."; }
     }
   }
-  if(msg && !/already/.test(msg)){ P.mag--; saveProfile(); Sfx.play("good"); }
+  if(msg && !/already/.test(msg)){ P.mag--; saveProfile(); Sfx.play("good"); track("mag_use",{k:it.g?"gen":"item"}); }
   focus=i; commit(); toast("🔍 "+msg);
 }
 
@@ -317,9 +320,9 @@ function deliver(i){
   selected=null;
   const it=S.grid[i], rq=S.req[S.scene];
   if(!it||it.g||!rq){ toast("Hand over a piece of evidence."); return renderTable(); }
-  if(it.c!==rq.c||it.t!==rq.t){ toast("The Inspector wants a "+item(rq.c,rq.t)[1]+"."); return renderTable(); }
+  if(it.c!==rq.c||it.t!==rq.t){ track("deliver_wrong"); toast("The Inspector wants a "+item(rq.c,rq.t)[1]+"."); return renderTable(); }
   S.grid[i]=null; rq.have++; Sfx.play("good"); fx(i,["⭐","✨"]);
-  if(rq.have>=rq.need){ const txt=applyReward(rq.reward); S.req[S.scene]=newRequest(S.scene); Sfx.play("upgrade"); toast("📋 Request complete! "+txt); }
+  if(rq.have>=rq.need){ track("request_done",{r:rq.reward.k}); const txt=applyReward(rq.reward); S.req[S.scene]=newRequest(S.scene); Sfx.play("upgrade"); toast("📋 Request complete! "+txt); }
   commit();
 }
 $("reqCard").addEventListener("click",()=>{
@@ -338,9 +341,27 @@ function showDaily(){
     (ready?'<p><button id="dClaim" class="primary">🎁 Claim: '+dailyText(DAILY[idx])+'</button></p>':'<p style="color:var(--moss)">✔ Claimed today. See you tomorrow, Detective!</p>')+'<p><button id="ok">Close</button></p>');
   $("ok").onclick=closeOverlay;
   const c=$("dClaim"); if(c) c.onclick=()=>{
-    const r=DAILY[idx]; P.ins+=r.ins||0; P.mag+=r.mag||0; P.daily={last:dayStr(),streak:nextStreak}; saveProfile(); Sfx.play("upgrade"); burstAt(innerWidth/2,innerHeight/2,["🎁","⭐","✨"]);
+    const r=DAILY[idx]; P.ins+=r.ins||0; P.mag+=r.mag||0; P.daily={last:dayStr(),streak:nextStreak}; saveProfile(); track("daily_claim",{n:nextStreak}); Sfx.play("upgrade"); burstAt(innerWidth/2,innerHeight/2,["🎁","⭐","✨"]);
     refreshDailyDot(); renderTable(); showDaily();
   };
+}
+/* ---------- play stats (local only; handy for playtests) ---------- */
+const STEP_LABEL={intro_start:"Started",first_spawn:"First spawn",first_merge:"First merge",first_upgrade:"First generator upgrade",first_clue:"First clue",scene_unlock:"Unlocked a room",first_link:"First string pinned",showdown_start:"Reached the showdown",case_solved:"Case solved"};
+function showStats(){
+  const sm=Stats.summary(), mm=n=>n<1?"<1 min":n+" min";
+  const cases=Object.entries(sm.cases).map(([id,c])=>{
+    const rows=Stats.steps.map(st=>{ const f=c.funnel[st]; return '<tr><td>'+(f?"✔":"·")+' '+STEP_LABEL[st]+'</td><td>'+(f?mm(Math.round(f.play/6000)/10):"—")+'</td></tr>'; }).join("");
+    const k=c.counts, extra=["hint","mag_use","request_done","link_bad","showdown_wrong","composure_out","idle","spawn_fail","merge_refused"].filter(e=>k[e]).map(e=>e.replace(/_/g," ")+" ×"+k[e]).join(" · ");
+    return '<div class="stat-case"><b>'+(CASES[id]?"Case "+CASES[id].num+": "+CASES[id].title:id)+'</b><br><small>'+c.plays+' play'+(c.plays===1?"":"s")+' · '+mm(c.playMin)+'</small>'+
+      '<table class="stat-t">'+rows+'</table>'+(extra?'<small>'+extra+'</small>':'')+'</div>';
+  }).join("")||'<p style="color:var(--dim)">Nothing recorded yet. Play a case, then check back.</p>';
+  overlay('<h2>Play stats</h2><p style="font-size:13px;color:var(--dim)">'+(Stats.shareAvailable&&CFG.share?'Anonymous stats are shared.':'Stored only on this device. Nothing is sent anywhere.')+'</p>'+
+    '<p style="font-size:14px"><b>'+sm.sessions+'</b> session'+(sm.sessions===1?"":"s")+' · <b>'+mm(sm.playMin)+'</b> played</p><div class="stat-wrap">'+cases+'</div>'+
+    '<p><button id="stCopy">Copy data</button> <button id="stDl">Download</button></p><p><button id="stReset" class="danger">Reset stats</button> <button id="ok">Close</button></p>');
+  $("ok").onclick=closeOverlay;
+  $("stCopy").onclick=async()=>{ try{ await navigator.clipboard.writeText(Stats.export()); toast("Copied. Paste it into a message."); }catch(e){ toast("Couldn't copy. Use Download instead."); } };
+  $("stDl").onclick=()=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([Stats.export()],{type:"application/json"})); a.download="merger-mystery-stats.json"; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); };
+  $("stReset").onclick=()=>{ if(confirm("Reset all play stats?")){ Stats.reset(); showStats(); } };
 }
 function refreshDailyDot(){ const b=$("mDaily"); if(b) b.innerHTML="🎁 Daily Casebook"+(dailyReady()?'<span class="dot">!</span>':''); }
 
@@ -356,11 +377,11 @@ function spawnFrom(i){
   const gen=S.grid[i];
   if(!gen||!gen.g) return;
   focus=i;
-  if(gen.ch<=0){ renderTable(); toast("Still recharging."); return; }
+  if(gen.ch<=0){ track("spawn_fail",{w:"cooldown"}); renderTable(); toast("Still recharging."); return; }
   const empty = emptyCells();
-  if(!empty.length){ toast("Table's full — merge or file something away."); return renderTable(); }
+  if(!empty.length){ track("spawn_fail",{w:"full"}); toast("Table's full — merge or file something away."); return renderTable(); }
   const j = empty[Math.floor(Math.random()*empty.length)];
-  tut(0); Sfx.play("spawn");
+  tut(0); Sfx.play("spawn"); track("spawn",{c:gen.c,l:gen.l});
   gen.ch--; if(gen.ch<=0) gen.cd = Date.now()+GEN_LEVELS[gen.l-1].cd*1000;
   S.grid[j] = mkItem(gen.c,pickTier(gen.c,gen.l));
   lastPop = j; commit();
@@ -384,7 +405,7 @@ $("scenes").addEventListener("click",e=>{
   if(!S.unlocked.includes(id)) return toast("Locked. Find: "+needText(id));
   switchScene(id);
 });
-function switchScene(id){ tool=null; hintCells=[]; S.scene=id; S.grid=S.boards[id]; selected=null; focus=null; drag=null; commit(); }
+function switchScene(id){ track("scene_switch",{id}); tool=null; hintCells=[]; S.scene=id; S.grid=S.boards[id]; selected=null; focus=null; drag=null; commit(); }
 function growBoards(){                                  // every board gains rows as the case progresses
   const want=COLS*rowsFor(S.clues.length); let grew=false;
   Object.values(S.boards).forEach(b=>{ while(b.length<want){ b.push(null); grew=true; } });
@@ -394,7 +415,7 @@ function checkUnlocks(){
   const opened=[];
   SCENE_IDS.forEach(id=>{
     if(!S.unlocked.includes(id) && SCENES[id].need.every(c=>S.clues.includes(c))){
-      S.unlocked.push(id); S.boards[id]=seedBoard(id,rowsFor(S.clues.length)); opened.push(id);
+      S.unlocked.push(id); S.boards[id]=seedBoard(id,rowsFor(S.clues.length)); opened.push(id); track("scene_unlock",{id});
     }
   });
   return opened;
@@ -417,13 +438,13 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
   if(focus===from && to!=="bin") focus=to;                // the info panel follows the tile you moved
   if(to==="bin"){
     if(a.g){ toast("Generators can't be filed away."); return renderTable(); }
-    S.grid[from]=null; toast("Filed away."); return commit();
+    S.grid[from]=null; track("file_away"); toast("Filed away."); return commit();
   }
   const b = S.grid[to];
   if(!b){ S.grid[to]=a; S.grid[from]=null; if(focus===from) focus=to; return commit(); }
   if(a.g && b.g && a.c===b.c && a.l===b.l){            // upgrade a generator
     if(a.l>=GEN_MAX){ toast("Already at max level."); return renderTable(); }
-    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2); Sfx.play("upgrade"); fx(to,["⭐","🎉"]);
+    S.grid[from]=null; S.grid[to]=mkGen(a.c,a.l+1); lastPop=to; focus=to; tut(2); Sfx.play("upgrade"); fx(to,["⭐","🎉"]); track("gen_upgrade",{c:a.c,l:a.l+1});
     const [emo,name]=genInfo(a.c,a.l+1), before=spawnTable(a.c,a.l).length, after=spawnTable(a.c,a.l+1).length;
     toast("⬆ "+name+" (Lv"+(a.l+1)+")! "+GEN_LEVELS[a.l].charges+" charges"+(after>before?" · now spawns "+item(a.c,after)[1]:""));
     return commit();
@@ -431,12 +452,12 @@ function act(from,to){        // from: cell index, to: cell index | "bin"
   if(!a.g && !b.g && a.c===b.c && a.t===b.t){          // merge evidence
     const pr=CHAINS[a.c].pair;
     if(pr && a.t===pr.tier){                            // contradiction merge
-      if(a.v===b.v){ toast("These two statements agree. You need testimony that clashes."); return renderTable(); }
-      S.grid[from]=null; S.grid[to]=null; tut(1); commit(); reveal(CHAINS[a.c].clue); return;
+      if(a.v===b.v){ track("merge_refused"); toast("These two statements agree. You need testimony that clashes."); return renderTable(); }
+      S.grid[from]=null; S.grid[to]=null; tut(1); track("merge",{c:a.c,t:a.t,x:1}); commit(); reveal(CHAINS[a.c].clue); return;
     }
     S.grid[from]=null; tut(1);
-    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; Sfx.play("merge",b.t); fx(to,["✨","⭐"]); commit(); }
-    else { S.grid[to]=null; commit(); reveal(CHAINS[a.c].clue); }
+    if(a.t < maxTier(a.c)){ b.t++; if(pr && b.t===pr.tier) b.v=scarceVariant(b.c); lastPop=to; Sfx.play("merge",b.t); fx(to,["✨","⭐"]); track("merge",{c:a.c,t:b.t}); commit(); }
+    else { S.grid[to]=null; track("merge",{c:a.c,t:a.t,x:1}); commit(); reveal(CHAINS[a.c].clue); }
     return;
   }
   S.grid[from]=b; S.grid[to]=a; if(focus===from) focus=to; else if(focus===to) focus=from; commit();   // swap
@@ -523,7 +544,7 @@ function closeOverlay(){ $("overlay").classList.add("hidden"); }
 function reveal(id){
   const c = CLUES[id];
   if(S.clues.includes(id)){ toast("Already on file."); return; }
-  S.clues.push(id); tut(3); const grew=growBoards(); P.ins++; saveProfile(); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
+  S.clues.push(id); tut(3); track("clue",{id,n:S.clues.length}); const grew=growBoards(); P.ins++; saveProfile(); Sfx.play("clue"); burstAt(innerWidth/2,innerHeight/2.6,["🔍","✨","⭐"]);
   const lead = grantLead(), opened = checkUnlocks(); commit();
   overlay('<div class="big">'+ic(c.emoji)+'</div><h2>'+(c.kind==='contradiction'?'⚡ Contradiction!':'Clue Discovered!')+'</h2><div class="paper"><b>'+c.title+'</b><br>'+c.text+'</div>'+
     (lead?'<p style="font-size:13px;color:var(--amber)">🎁 The Inspector sends a new lead: '+lead[0]+' '+lead[1]+' (Lv1)</p>':'')+
@@ -595,21 +616,21 @@ $("suspects").addEventListener("click", e=>{
   const s=e.target.closest(".sus"); if(!s||!armedClue||S.solved) return;
   const sid=s.dataset.s, cid=armedClue, clue=CLUES[cid];
   armedClue=null;
-  if(clue.who===sid){ S.links[cid]=sid; Sfx.play("good"); toast("The string pulls taut. ✔"); commit(); }
+  if(clue.who===sid){ S.links[cid]=sid; track("link_ok",{id:cid}); Sfx.play("good"); toast("The string pulls taut. ✔"); commit(); }
   else {
     // wrong: draw a limp string that snaps
     const a=document.querySelector('.clue[data-c="'+cid+'"]'), cork=$("cork").getBoundingClientRect();
     $("strings").insertAdjacentHTML("beforeend", stringPath(a,s,cork,"#777",3,'stroke-dasharray="6 6"'));
     s.classList.add("shake");
-    S.composure--; Sfx.play("snap");
+    S.composure--; Sfx.play("snap"); track("link_bad",{id:cid,s:sid});
     let msg = clue.who ? "Twang! That doesn't connect "+SUSPECTS[sid].name+" to the crime." : "Twang! "+(clue.herring||"A red herring.");
-    if(S.composure<=0){ msg+=" (Composure restored — the Inspector gives you a nudge: "+NEED.length+" clues, one culprit.)"; S.composure=START_COMPOSURE; }
+    if(S.composure<=0){ track("composure_out",{w:"board"}); msg+=" (Composure restored — the Inspector gives you a nudge: "+NEED.length+" clues, one culprit.)"; S.composure=START_COMPOSURE; }
     toast(msg); save();
     setTimeout(()=>{ renderBoard(); renderHud(); },450);
   }
 });
 function startShowdown(){
-  let step=0, msg="";
+  let step=0, msg=""; track("showdown_start");
   const draw=()=>{
     const q=SHOWDOWN[step];
     overlay('<div class="scene"><div class="portrait">'+faceHTML(SUSPECTS[CULPRIT].face)+'</div><div class="who">'+SUSPECTS[CULPRIT].name+' · '+(step+1)+' of '+SHOWDOWN.length+'</div>'+
@@ -627,16 +648,16 @@ function startShowdown(){
         '<p><button id="sdNext">'+(step<SHOWDOWN.length-1?"Next claim ▸":"Name the culprit ▸")+'</button></p></div>');
       $("sdNext").onclick=()=>{ step++; step<SHOWDOWN.length ? draw() : finale(); };
     } else {
-      S.composure--; Sfx.play("wrong");
+      S.composure--; Sfx.play("wrong"); track("showdown_wrong",{i:step});
       msg = CLUES[id].who==null ? "That isn't admissible evidence!" : "That doesn't answer the claim. Twang!";
-      if(S.composure<=0){ S.composure=START_COMPOSURE; msg+=" Poe-tential whispers: “Try the ‘"+CLUES[q.answer].title+"’ clue.” (Composure restored)"; }
+      if(S.composure<=0){ track("composure_out",{w:"showdown"}); S.composure=START_COMPOSURE; msg+=" Poe-tential whispers: “Try the ‘"+CLUES[q.answer].title+"’ clue.” (Composure restored)"; }
       save(); renderHud(); draw(); document.querySelector(".modal").classList.add("shake");
     }
   };
   draw();
 }
 function finale(){
-  const F=CASE.finale, first=!S.solved; if(first){ P.ins+=2; P.mag+=1; } S.solved=true; P.solved[CASE.id]=true; saveProfile(); commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["🎉","⭐","✨"]);
+  const F=CASE.finale, first=!S.solved; if(first) track("case_solved",{min:Math.round((Stats.summary().cases[CASE.id]||{}).playMin||0)}); if(first){ P.ins+=2; P.mag+=1; } S.solved=true; P.solved[CASE.id]=true; saveProfile(); commit(); Sfx.play("eureka"); burstAt(innerWidth/2,innerHeight/3,["🎉","⭐","✨"]);
   overlay('<div class="spot"><div class="portrait">'+faceHTML(SUSPECTS[CULPRIT].face)+'</div></div><h2>'+F.title+'</h2>'+
     '<p>'+F.text+'</p><p><i>'+F.coda+'</i></p>'+
     '<p style="color:var(--dim);font-size:13px">CASE '+CASE.num+' CLOSED<br>'+F.teaser+'</p>'+(first?'<p style="color:var(--amber);font-size:13px">🎁 Bonus: +2 Inspiration, +1 Magnifier</p>':'')+
@@ -653,7 +674,17 @@ function renderHud(){
   $("energy").innerHTML = "🔎 Clues " + S.clues.length + "/" + Object.keys(CLUES).length;
   $("composure").innerHTML = "🎭 Composure " + "♥".repeat(S.composure) + "♡".repeat(START_COMPOSURE-S.composure);
 }
-function commit(){ save(); renderTable(); renderBoard(); }
+let idleSince=0, idleFull=false;
+function watchIdle(){                                  // how long do players wait with nothing to do?
+  try{
+    if(S.solved) return;
+    const g=S.grid, ready=g.some(x=>x&&x.g&&x.ch>0), room=g.some(x=>!x), moves=mergeCandidates(g).length>0;
+    const idle=!moves && !(ready&&room);
+    if(idle && !idleSince){ idleSince=Date.now(); idleFull=!room; }
+    else if(!idle && idleSince){ const ms=Date.now()-idleSince; if(ms>3000) track("idle",{s:Math.round(ms/1000),full:idleFull}); idleSince=0; }
+  }catch(_){}
+}
+function commit(){ save(); renderTable(); renderBoard(); watchIdle(); }
 function showTab(t){
   const b = t==="board";
   $("viewTable").classList.toggle("hidden",b); $("viewBoard").classList.toggle("hidden",!b);
@@ -756,7 +787,7 @@ function showMenu(){
 }
 function showGame(){ $("menu").classList.add("hidden"); $("app").classList.remove("hidden"); renderHud(); showTab("table"); }
 function startCase(id){                 // begin (or restart) a case from scratch, with its prologue
-  openCase(id); S=fresh(); save(); commit(); playIntro(0);
+  openCase(id); track("intro_start"); S=fresh(); save(); commit(); playIntro(0);
 }
 function newCase(){ $("mCases").click(); }
 function playIntro(i){
@@ -810,11 +841,15 @@ $("mSettings").onclick=()=>{
       '<p><button id="sSfx">Sound effects: '+(CFG.sfx?"ON":"OFF")+'</button></p>'+
       '<p><button id="sMusic">Music: '+(CFG.music?"ON":"OFF")+'</button></p>'+
       '<p><button id="sMotion">Reduce motion: '+(CFG.reduce?"ON":"OFF")+'</button></p>'+
+      '<p><button id="sStats">📊 Play stats</button></p>'+
+      (Stats.shareAvailable?'<p><button id="sShare">Share anonymous stats: '+(CFG.share?"ON":"OFF")+'</button></p>':'')+
       '<p><button id="sErase" class="danger">Erase saved progress</button></p><p><button id="ok">Back</button></p>');
     const inst=$("sInstall"); if(inst) inst.onclick=async()=>{
       if(installEvt){ installEvt.prompt(); await installEvt.userChoice.catch(()=>{}); installEvt=null; }
       else toast(/iphone|ipad|ipod/i.test(navigator.userAgent) ? "On iPhone/iPad: tap Share, then Add to Home Screen." : "Use your browser menu: Install app / Add to Home screen.");
     };
+    $("sStats").onclick=showStats;
+    const sh=$("sShare"); if(sh) sh.onclick=()=>{ CFG.share=!CFG.share; applyCfg(); draw(); };
     $("sTheme").onclick=()=>{ CFG.theme=THEMES[(THEMES.indexOf(CFG.theme)+1)%THEMES.length]; applyCfg(); draw(); };
     $("sSfx").onclick=()=>{ CFG.sfx=!CFG.sfx; applyCfg(); draw(); };
     $("sMusic").onclick=()=>{ CFG.music=!CFG.music; applyCfg(); draw(); };
@@ -831,7 +866,7 @@ window.addEventListener("resize",drawStrings);
 setInterval(()=>{                                   // cooldown ticker: full re-render only when a generator refills
   if(drag && drag.moved) return;
   if(!drag) document.querySelectorAll(".ghost").forEach(g=>g.remove());
-  if(tickGens()) renderTable(); else tickCooldownText();
+  if(tickGens()){ renderTable(); watchIdle(); } else tickCooldownText();
 },500);
 /* ---------- install / offline (PWA) ---------- */
 let installEvt=null;
